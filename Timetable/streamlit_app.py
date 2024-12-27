@@ -11,6 +11,9 @@ if 'courses' not in st.session_state:
 if 'generated' not in st.session_state:
     st.session_state.generated = False
 
+if 'locked' not in st.session_state:
+    st.session_state.locked = False
+
 if 'timetable' not in st.session_state:
     st.session_state.timetable = defaultdict(lambda: defaultdict(list))
 
@@ -74,6 +77,10 @@ st.title("Course Timetable Generator")
 # Section to add a new course
 st.header("Add a New Course")
 
+# Check if the timetable is locked (already generated)
+if st.session_state.locked:
+    st.warning("Timetable is locked. New courses will be added without modifying the existing timetable.")
+
 # Create the form and submit logic
 with st.form(key='add_course_form'):
     course_code = st.text_input("Course Code", value=st.session_state.course_code)
@@ -134,6 +141,7 @@ def generate_timetable():
                 schedule_course(course['course_code'], course['course_title'], course['section'], course['teacher'], course['credit_hours'])
         
         st.session_state.generated = True  # Mark the timetable as generated
+        st.session_state.locked = True  # Lock the timetable from further changes
 
 # Function to schedule courses based on credit hours and other constraints
 def schedule_course(course_code, course_title, section, teacher, credit_hours):
@@ -205,12 +213,14 @@ st.header("Generate Timetable")
 generate_button = st.button("Generate Timetable")
 
 if generate_button:
-    if st.session_state.courses:
+    if st.session_state.courses and not st.session_state.locked:
         generate_timetable()
         timetable_data = get_timetable()
         if timetable_data:
             df = pd.DataFrame(timetable_data)
             st.dataframe(df)
+    elif st.session_state.locked:
+        st.warning("Timetable is already locked and cannot be changed.")
     else:
         st.error("Please add courses before generating the timetable.")
 
