@@ -245,7 +245,7 @@ st.header("Update Timetable with New Courses")
 update_button = st.button("Update Timetable")
 
 if update_button:
-    # Only add new courses to the existing timetable
+    # Only add new courses to the existing timetable without modifying the old one
     if st.session_state.courses:
         for course in st.session_state.courses:
             schedule_course(course['course_code'], course['course_title'], course['section'], course['teacher'], course['credit_hours'])
