@@ -45,7 +45,6 @@ def get_courses():
 
 # Function to get the timetable
 def get_timetable():
-    global st
     timetable_data = []
     for course in st.session_state.courses:
         for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']:
@@ -75,7 +74,9 @@ st.title("Course Timetable Generator")
 # Section to add a new course
 st.header("Add a New Course")
 
-with st.form(key='add_course_form'):
+# Use a placeholder to reset form fields
+form_placeholder = st.empty()
+with form_placeholder.form(key='add_course_form'):
     course_code = st.text_input("Course Code", value=st.session_state.course_code, key="course_code")
     course_title = st.text_input("Course Title", value=st.session_state.course_title, key="course_title")
     section = st.text_input("Section", value=st.session_state.section, key="section")
@@ -95,7 +96,8 @@ with st.form(key='add_course_form'):
                 'teacher': teacher
             })
             st.success("Course added successfully!")
-            # Clear the form fields after submission
+            
+            # Clear form fields in session state
             st.session_state.course_code = ''
             st.session_state.course_title = ''
             st.session_state.section = ''
