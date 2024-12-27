@@ -224,6 +224,26 @@ if generate_button:
     else:
         st.error("Please add courses before generating the timetable.")
 
+# Button to update timetable with new courses
+st.header("Update Timetable with New Courses")
+
+update_button = st.button("Update Timetable")
+
+if update_button:
+    if st.session_state.courses:
+        # Only update timetable with new courses, preserving the original timetable
+        for course in st.session_state.courses:
+            if not any(st.session_state.timetable[day].get(course['course_code']) for day in st.session_state.timetable):
+                schedule_course(course['course_code'], course['course_title'], course['section'], course['teacher'], course['credit_hours'])
+        
+        st.success("Timetable updated with new courses!")
+        timetable_data = get_timetable()
+        if timetable_data:
+            df = pd.DataFrame(timetable_data)
+            st.dataframe(df)
+    else:
+        st.error("No new courses to add.")
+
 # Option to download timetable as Excel file
 st.header("Download Timetable")
 
