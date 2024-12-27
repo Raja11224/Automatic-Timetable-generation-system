@@ -4,11 +4,15 @@ from collections import defaultdict
 import random
 from io import BytesIO
 
-# Global storage for courses, timetable, and teachers
-courses = []
-timetable = defaultdict(lambda: defaultdict(list))  # Dictionary to hold the timetable for each day
-teachers = []  # List to store unique teachers
-generated = False  # Flag to track if timetable has been generated
+# Initialize session state for courses and timetable
+if 'courses' not in st.session_state:
+    st.session_state.courses = []
+
+if 'generated' not in st.session_state:
+    st.session_state.generated = False
+
+if 'timetable' not in st.session_state:
+    st.session_state.timetable = defaultdict(lambda: defaultdict(list))
 
 # Sample rooms for simplicity
 rooms = ["CB1-101", "CB1-102", "CB1-103", "CB1-104", "CB1-105", "CB1-106"]
@@ -21,21 +25,20 @@ def get_courses():
         'course_title': course['course_title'],
         'section': course['section'],
         'teacher': course['teacher']
-    } for course in courses]
+    } for course in st.session_state.courses]
 
 # Function to get the timetable
 def get_timetable():
-    global timetable
+    global st
     timetable_data = []
-    for course in courses:
+    for course in st.session_state.courses:
         for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']:
-            if course['course_code'] in timetable[day]:
-                for session in timetable[day][course['course_code']]:
+            if course['course_code'] in st.session_state.timetable[day]:
+                for session in st.session_state.timetable[day][course['course_code']]:
                     timetable_data.append({
                         'Course Code': course['course_code'],
                         'Course Title': course['course_title'],
                         'Section': course['section'],
-                        'Credit Hours': course['credit_hours'],
                         'Teacher': course['teacher'],
                         'Day': day,
                         'Time': session['time'],
@@ -45,7 +48,7 @@ def get_timetable():
 
 # Function to assign a teacher to a course
 def assign_resource_person(course_code, teacher):
-    for course in courses:
+    for course in st.session_state.courses:
         if course['course_code'] == course_code:
             course['teacher'] = teacher
             break
@@ -57,18 +60,18 @@ st.title("Course Timetable Generator")
 st.header("Add a New Course")
 
 with st.form(key='add_course_form'):
-    course_code = st.text_input("Course Code")
-    course_title = st.text_input("Course Title")
-    section = st.text_input("Section")
-    credit_hours = st.number_input("Credit Hours", min_value=1, max_value=5)
-    teacher = st.text_input("Teacher")
+    course_code = st.text_input("Course Code", key="course_code")
+    course_title = st.text_input("Course Title", key="course_title")
+    section = st.text_input("Section", key="section")
+    credit_hours = st.number_input("Credit Hours", min_value=1, max_value=5, key="credit_hours")
+    teacher = st.text_input("Teacher", key="teacher")
     
     # Submit button to add course
     submit_button = st.form_submit_button(label="Add Course")
     
     if submit_button:
         if course_code and course_title and section and teacher:
-            courses.append({
+            st.session_state.courses.append({
                 'course_code': course_code,
                 'course_title': course_title,
                 'section': section,
@@ -76,6 +79,12 @@ with st.form(key='add_course_form'):
                 'teacher': teacher
             })
             st.success("Course added successfully!")
+            # Clear the form fields after submission
+            st.session_state.course_code = ''
+            st.session_state.course_title = ''
+            st.session_state.section = ''
+            st.session_state.credit_hours = 1
+            st.session_state.teacher = ''
         else:
             st.error("Please fill all the fields.")
 
@@ -94,23 +103,22 @@ with st.form(key='assign_teacher_form'):
 
 # Display added courses
 st.header("Added Courses")
-if courses:
-    for course in courses:
+if st.session_state.courses:
+    for course in st.session_state.courses:
         st.write(f"{course['course_code']} - {course['course_title']} (Section: {course['section']}, Teacher: {course['teacher']})")
 else:
     st.write("No courses added yet.")
 
 # Function to generate timetable
 def generate_timetable():
-    global timetable, generated
-    if not generated:  # Only generate the timetable if it hasn't been generated already
+    if not st.session_state.generated:  # Only generate the timetable if it hasn't been generated already
         # Schedule the courses and generate the timetable, while preserving the old courses
-        for course in courses:
-            if not any(timetable[day].get(course['course_code']) for day in timetable):
+        for course in st.session_state.courses:
+            if not any(st.session_state.timetable[day].get(course['course_code']) for day in st.session_state.timetable):
                 schedule_course(course['course_code'], course['course_title'], course['section'], course['teacher'], course['credit_hours'])
+        
+        st.session_state.generated = True  # Mark the timetable as generated
 
-        generated = True  # Mark the timetable as generated
-    
 # Function to schedule courses based on credit hours and other constraints
 def schedule_course(course_code, course_title, section, teacher, credit_hours):
     num_sessions = credit_hours
@@ -127,7 +135,7 @@ def schedule_course(course_code, course_title, section, teacher, credit_hours):
             if not is_slot_available(day, time, room):
                 return schedule_course(course_code, course_title, section, teacher, credit_hours)
 
-            timetable[day][course_code].append({
+            st.session_state.timetable[day][course_code].append({
                 'time': time,
                 'room': room
             })
@@ -146,7 +154,7 @@ def schedule_course(course_code, course_title, section, teacher, credit_hours):
             if not is_slot_available(day, time, room):
                 return schedule_course(course_code, course_title, section, teacher, credit_hours)
 
-            timetable[day][course_code].append({
+            st.session_state.timetable[day][course_code].append({
                 'time': time,
                 'room': room
             })
@@ -164,7 +172,7 @@ def schedule_course(course_code, course_title, section, teacher, credit_hours):
             if not is_slot_available(day, time, room):
                 return schedule_course(course_code, course_title, section, teacher, credit_hours)
 
-            timetable[day][course_code].append({
+            st.session_state.timetable[day][course_code].append({
                 'time': time,
                 'room': room
             })
@@ -173,8 +181,8 @@ def schedule_course(course_code, course_title, section, teacher, credit_hours):
 
 # Check if a time slot is available for a course
 def is_slot_available(day, time, room):
-    for course_code in timetable[day]:
-        for session in timetable[day][course_code]:
+    for course_code in st.session_state.timetable[day]:
+        for session in st.session_state.timetable[day][course_code]:
             if session['time'] == time and session['room'] == room:
                 return False  # Slot is already taken
     return True
@@ -185,7 +193,7 @@ st.header("Generate Timetable")
 generate_button = st.button("Generate Timetable")
 
 if generate_button:
-    if courses:
+    if st.session_state.courses:
         generate_timetable()
         timetable_data = get_timetable()
         if timetable_data:
