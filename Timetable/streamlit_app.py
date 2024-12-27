@@ -14,6 +14,22 @@ if 'generated' not in st.session_state:
 if 'timetable' not in st.session_state:
     st.session_state.timetable = defaultdict(lambda: defaultdict(list))
 
+# Initialize form fields in session_state if not already initialized
+if 'course_code' not in st.session_state:
+    st.session_state.course_code = ''
+
+if 'course_title' not in st.session_state:
+    st.session_state.course_title = ''
+
+if 'section' not in st.session_state:
+    st.session_state.section = ''
+
+if 'credit_hours' not in st.session_state:
+    st.session_state.credit_hours = 1
+
+if 'teacher' not in st.session_state:
+    st.session_state.teacher = ''
+
 # Sample rooms for simplicity
 rooms = ["CB1-101", "CB1-102", "CB1-103", "CB1-104", "CB1-105", "CB1-106"]
 time_slots = ["8:00-9:00", "9:00-10:00", "10:00-11:00", "11:00-12:00", "12:00-1:00"]
@@ -60,11 +76,11 @@ st.title("Course Timetable Generator")
 st.header("Add a New Course")
 
 with st.form(key='add_course_form'):
-    course_code = st.text_input("Course Code", key="course_code")
-    course_title = st.text_input("Course Title", key="course_title")
-    section = st.text_input("Section", key="section")
-    credit_hours = st.number_input("Credit Hours", min_value=1, max_value=5, key="credit_hours")
-    teacher = st.text_input("Teacher", key="teacher")
+    course_code = st.text_input("Course Code", value=st.session_state.course_code, key="course_code")
+    course_title = st.text_input("Course Title", value=st.session_state.course_title, key="course_title")
+    section = st.text_input("Section", value=st.session_state.section, key="section")
+    credit_hours = st.number_input("Credit Hours", min_value=1, max_value=5, value=st.session_state.credit_hours, key="credit_hours")
+    teacher = st.text_input("Teacher", value=st.session_state.teacher, key="teacher")
     
     # Submit button to add course
     submit_button = st.form_submit_button(label="Add Course")
