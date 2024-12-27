@@ -216,37 +216,31 @@ def is_slot_available(day, time, room, section):
     # Check if the section already has a class scheduled at this time
     for scheduled_day, scheduled_time, scheduled_room in st.session_state.timetable[day].get(section, []):
         if scheduled_time == time:
-            return False  # The section already has a class scheduled at this time
+            return False  # Conflict: same section, same time
     
-    # Also check if the room is available for this time slot
-    for course_code in st.session_state.timetable[day]:
-        for session in st.session_state.timetable[day][course_code]:
-            if session['time'] == time and session['room'] == room:
-                return False  # Slot is already taken by another course
+    # Check if the room is already occupied at this time
+    for scheduled_day, scheduled_time, scheduled_room in st.session_state.timetable[day].get(room, []):
+        if scheduled_time == time:
+            return False  # Conflict: same room, same time
+    
     return True
 
 # Button to generate timetable
-st.header("Generate Timetable")
-
-generate_button = st.button("Generate Timetable")
-
-if generate_button:
+if st.button("Generate Timetable"):
     generate_timetable()
+    timetable_data = get_timetable()
+    if timetable_data:
+        df = pd.DataFrame(timetable_data)
+        st.dataframe(df)
 
-    if st.session_state.generated:
-        timetable_data = get_timetable()
-        if timetable_data:
-            df = pd.DataFrame(timetable_data)
-            st.dataframe(df)
-
-# Button to update timetable with new courses
+# Section to update timetable with new courses without changing the old timetable
 st.header("Update Timetable with New Courses")
 
 update_button = st.button("Update Timetable")
 
 if update_button:
-    # Only add new courses to the existing timetable without modifying the old one
     if st.session_state.courses:
+        # Only add new courses without modifying the old timetable
         for course in st.session_state.courses:
             schedule_course(course['course_code'], course['course_title'], course['section'], course['teacher'], course['credit_hours'])
         
@@ -262,7 +256,6 @@ st.header("Download Timetable")
 download_button = st.button("Download Timetable as Excel")
 
 if download_button:
-    # Convert the timetable to Excel
     timetable_data = get_timetable()
     if timetable_data:
         df = pd.DataFrame(timetable_data)
