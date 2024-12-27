@@ -86,17 +86,18 @@ else:
 # Section to assign a resource person (teacher) to a course
 st.header("Assign Teacher to a Course")
 
-if st.session_state.courses:
-    course_code = st.selectbox("Select Course", [course['course_code'] for course in st.session_state.courses])
-    teacher = st.text_input("Teacher")
-    
-    submit_button = st.form_submit_button(label="Assign Teacher")
-
-    if submit_button:
-        assign_resource_person(course_code, teacher)
-        st.success(f"Teacher {teacher} assigned to course {course_code} successfully!")
-else:
-    st.write("Please add courses before assigning teachers.")
+with st.form(key='assign_teacher_form'):
+    if st.session_state.courses:
+        course_code = st.selectbox("Select Course", [course['course_code'] for course in st.session_state.courses])
+        teacher = st.text_input("Teacher")
+        
+        submit_button = st.form_submit_button(label="Assign Teacher")
+        
+        if submit_button:
+            assign_resource_person(course_code, teacher)
+            st.success(f"Teacher {teacher} assigned to course {course_code} successfully!")
+    else:
+        st.write("Please add courses before assigning teachers.")
 
 # Section to generate timetable
 st.header("Generate Timetable")
@@ -123,11 +124,11 @@ if generate_button:
     else:
         st.error("Please add courses before generating the timetable.")
 
-# Display timetable section
-st.header("Generated Timetable")
-
 # Fetch timetable data
 timetable_data = get_timetable()
+
+# Display timetable section
+st.header("Generated Timetable")
 
 if timetable_data:
     df = pd.DataFrame(timetable_data)
