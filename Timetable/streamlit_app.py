@@ -74,17 +74,13 @@ st.title("Course Timetable Generator")
 # Section to add a new course
 st.header("Add a New Course")
 
-# Reset form logic using session state flags
-if 'form_submitted' not in st.session_state:
-    st.session_state.form_submitted = False
-
 # Create the form and submit logic
 with st.form(key='add_course_form'):
-    course_code = st.text_input("Course Code", value=st.session_state.course_code, key="course_code")
-    course_title = st.text_input("Course Title", value=st.session_state.course_title, key="course_title")
-    section = st.text_input("Section", value=st.session_state.section, key="section")
-    credit_hours = st.number_input("Credit Hours", min_value=1, max_value=5, value=st.session_state.credit_hours, key="credit_hours")
-    teacher = st.text_input("Teacher", value=st.session_state.teacher, key="teacher")
+    course_code = st.text_input("Course Code", value=st.session_state.course_code)
+    course_title = st.text_input("Course Title", value=st.session_state.course_title)
+    section = st.text_input("Section", value=st.session_state.section)
+    credit_hours = st.number_input("Credit Hours", min_value=1, max_value=5, value=st.session_state.credit_hours)
+    teacher = st.text_input("Teacher", value=st.session_state.teacher)
     
     submit_button = st.form_submit_button(label="Add Course")
     
@@ -98,9 +94,8 @@ with st.form(key='add_course_form'):
                 'teacher': teacher
             })
             st.success("Course added successfully!")
-            st.session_state.form_submitted = True  # Mark form as submitted
             
-            # Clear form fields after successful submission
+            # Clear form fields by resetting session state before the form is shown again
             st.session_state.course_code = ''
             st.session_state.course_title = ''
             st.session_state.section = ''
@@ -108,10 +103,6 @@ with st.form(key='add_course_form'):
             st.session_state.teacher = ''
         else:
             st.error("Please fill all the fields.")
-
-# Reset form state after submission to clear form fields
-if st.session_state.form_submitted:
-    st.session_state.form_submitted = False  # Reset the form submission flag
 
 # Section to assign a resource person (teacher) to a course
 st.header("Assign Teacher to a Course")
