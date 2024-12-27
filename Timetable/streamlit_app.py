@@ -146,6 +146,14 @@ with st.form(key='add_course_form'):
         else:
             st.error("Please fill all the fields.")
 
+# Show the list of added courses
+if courses:
+    st.subheader("Courses Added")
+    courses_df = pd.DataFrame(get_courses())
+    st.dataframe(courses_df)
+else:
+    st.write("No courses added yet.")
+
 # Assign Teacher Section
 st.header("Assign Teacher to a Course")
 
@@ -159,17 +167,37 @@ with st.form(key='assign_teacher_form'):
         assign_resource_person(course_code, teacher)
         st.success(f"Teacher {teacher} assigned to course {course_code} successfully!")
 
+# Generate Timetable Button
+st.header("Generate Timetable")
+
+generate_button = st.button("Generate Timetable")
+
+if generate_button:
+    if not courses:
+        st.error("Please add courses before generating the timetable.")
+    else:
+        # Randomly assign times and rooms for simplicity
+        for course in courses:
+            for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']:
+                session_time = random.choice(time_slots)
+                session_room = random.choice(rooms)
+                timetable[day][course['course_code']].append({'time': session_time, 'room': session_room})
+        generated = True
+        st.success("Timetable generated successfully!")
+
 # Display Timetable Section
 st.header("Generated Timetable")
 
 # Fetch timetable data
-timetable_data = get_timetable()
-
-if timetable_data:
-    df = pd.DataFrame(timetable_data)
-    st.dataframe(df)
+if generated:
+    timetable_data = get_timetable()
+    if timetable_data:
+        df = pd.DataFrame(timetable_data)
+        st.dataframe(df)
+    else:
+        st.write("No timetable available yet.")
 else:
-    st.write("No timetable generated yet.")
+    st.write("Click 'Generate Timetable' to generate timetable.")
 
 # Option to download timetable as Excel file
 st.header("Download Timetable")
