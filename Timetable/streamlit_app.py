@@ -32,7 +32,7 @@ if 'teacher' not in st.session_state:
 
 # Sample rooms for simplicity
 rooms = ["CB1-101", "CB1-102", "CB1-103", "CB1-104", "CB1-105", "CB1-106"]
-time_slots = ["8:00-9:00", "9:00-10:00", "10:00-11:00", "11:00-12:00", "12:00-1:00"]
+time_slots = ["8:00-9:00", "9:00-10:00", "10:00-11:00", "11:00-12:00", "12:00-1:00", "1:00-2:00", "2:00-3:00", "3:00-4:00", "4:00-5:00"]
 
 # Function to get courses
 def get_courses():
@@ -47,18 +47,18 @@ def get_courses():
 def get_timetable():
     timetable_data = []
     for course in st.session_state.courses:
-        for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']:
-            if course['course_code'] in st.session_state.timetable[day]:
-                for session in st.session_state.timetable[day][course['course_code']]:
-                    timetable_data.append({
-                        'Course Code': course['course_code'],
+        course_times = {'Course Code': course['course_code'],
                         'Course Title': course['course_title'],
                         'Section': course['section'],
-                        'Teacher': course['teacher'],
-                        'Day': day,
-                        'Time': session['time'],
-                        'Room': session['room']
-                    })
+                        'Teacher': course['teacher']}
+        
+        for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']:
+            day_schedule = []
+            for session in st.session_state.timetable[day].get(course['course_code'], []):
+                day_schedule.append(f"{session['time']} (Room: {session['room']})")
+            course_times[day] = ", ".join(day_schedule) if day_schedule else "Not scheduled"
+        
+        timetable_data.append(course_times)
     return timetable_data
 
 # Function to assign a teacher to a course
@@ -141,12 +141,11 @@ def schedule_course(course_code, course_title, section, teacher, credit_hours):
     time_slot_index = 0  # Start from the first time slot
 
     if credit_hours == 1:
-        # Lab course: 1 credit hour, schedule three consecutive hours
+        # Lab course: 1 credit hour, schedule three consecutive hours in the same room
         day = random.choice(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'])
         room = random.choice(rooms)
 
-        # Check if time slots are available for this day and course
-        for i in range(3):
+        for i in range(3):  # Schedule three hours
             time = time_slots[time_slot_index + i]
             if not is_slot_available(day, time, room):
                 return schedule_course(course_code, course_title, section, teacher, credit_hours)
@@ -156,16 +155,14 @@ def schedule_course(course_code, course_title, section, teacher, credit_hours):
                 'room': room
             })
         
-        # Update the time slot index (skip three slots)
         time_slot_index = (time_slot_index + 3) % len(time_slots)
-    
-    elif credit_hours == 2:
-        # 2 credit hours: schedule both hours in the same room
+
+    elif credit_hours == 3:
+        # 3 credit hours: schedule two 1.5 hour slots in the same room
         day = random.choice(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'])
         room = random.choice(rooms)
 
-        # Check if both consecutive slots are available
-        for i in range(2):
+        for i in range(2):  # Schedule two 1.5 hour slots
             time = time_slots[time_slot_index + i]
             if not is_slot_available(day, time, room):
                 return schedule_course(course_code, course_title, section, teacher, credit_hours)
@@ -175,11 +172,10 @@ def schedule_course(course_code, course_title, section, teacher, credit_hours):
                 'room': room
             })
         
-        # Update the time slot index (skip two slots)
         time_slot_index = (time_slot_index + 2) % len(time_slots)
 
     else:
-        # For courses with more than 2 credit hours, we schedule one slot at a time
+        # For courses with more than 3 credit hours, schedule one slot at a time
         for _ in range(num_sessions):
             day = random.choice(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'])
             time = time_slots[time_slot_index]
