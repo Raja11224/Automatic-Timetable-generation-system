@@ -148,6 +148,9 @@ def schedule_course(course_code, course_title, section, teacher, credit_hours):
     num_sessions = credit_hours
     time_slot_index = 0  # Start from the first time slot
 
+    # Track scheduled times for each section
+    section_schedule = defaultdict(list)
+
     if credit_hours == 1:
         # Lab course: 1 credit hour, schedule three consecutive hours in the same room
         day = random.choice(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'])
@@ -155,9 +158,12 @@ def schedule_course(course_code, course_title, section, teacher, credit_hours):
 
         for i in range(3):  # Schedule three hours
             time = time_slots[time_slot_index + i]
-            if not is_slot_available(day, time, room):
+            if not is_slot_available(day, time, room, section):
                 return schedule_course(course_code, course_title, section, teacher, credit_hours)
 
+            # Track section schedule to avoid conflicts
+            section_schedule[section].append((day, time, room))
+            
             st.session_state.timetable[day][course_code].append({
                 'time': time,
                 'room': room
@@ -172,9 +178,12 @@ def schedule_course(course_code, course_title, section, teacher, credit_hours):
 
         for i in range(2):  # Schedule two 1.5 hour slots
             time = time_slots[time_slot_index + i]
-            if not is_slot_available(day, time, room):
+            if not is_slot_available(day, time, room, section):
                 return schedule_course(course_code, course_title, section, teacher, credit_hours)
 
+            # Track section schedule to avoid conflicts
+            section_schedule[section].append((day, time, room))
+            
             st.session_state.timetable[day][course_code].append({
                 'time': time,
                 'room': room
@@ -189,9 +198,12 @@ def schedule_course(course_code, course_title, section, teacher, credit_hours):
             time = time_slots[time_slot_index]
             room = random.choice(rooms)
 
-            if not is_slot_available(day, time, room):
+            if not is_slot_available(day, time, room, section):
                 return schedule_course(course_code, course_title, section, teacher, credit_hours)
 
+            # Track section schedule to avoid conflicts
+            section_schedule[section].append((day, time, room))
+            
             st.session_state.timetable[day][course_code].append({
                 'time': time,
                 'room': room
@@ -200,11 +212,17 @@ def schedule_course(course_code, course_title, section, teacher, credit_hours):
             time_slot_index = (time_slot_index + 1) % len(time_slots)
 
 # Check if a time slot is available for a course
-def is_slot_available(day, time, room):
+def is_slot_available(day, time, room, section):
+    # Check if the section already has a class scheduled at this time
+    for scheduled_day, scheduled_time, scheduled_room in st.session_state.timetable[day].get(section, []):
+        if scheduled_time == time:
+            return False  # The section already has a class scheduled at this time
+    
+    # Also check if the room is available for this time slot
     for course_code in st.session_state.timetable[day]:
         for session in st.session_state.timetable[day][course_code]:
             if session['time'] == time and session['room'] == room:
-                return False  # Slot is already taken
+                return False  # Slot is already taken by another course
     return True
 
 # Button to generate timetable
@@ -213,16 +231,13 @@ st.header("Generate Timetable")
 generate_button = st.button("Generate Timetable")
 
 if generate_button:
-    if st.session_state.courses and not st.session_state.locked:
-        generate_timetable()
+    generate_timetable()
+
+    if st.session_state.generated:
         timetable_data = get_timetable()
         if timetable_data:
             df = pd.DataFrame(timetable_data)
             st.dataframe(df)
-    elif st.session_state.locked:
-        st.warning("Timetable is already locked and cannot be changed.")
-    else:
-        st.error("Please add courses before generating the timetable.")
 
 # Button to update timetable with new courses
 st.header("Update Timetable with New Courses")
@@ -230,19 +245,16 @@ st.header("Update Timetable with New Courses")
 update_button = st.button("Update Timetable")
 
 if update_button:
+    # Only add new courses to the existing timetable
     if st.session_state.courses:
-        # Only update timetable with new courses, preserving the original timetable
         for course in st.session_state.courses:
-            if not any(st.session_state.timetable[day].get(course['course_code']) for day in st.session_state.timetable):
-                schedule_course(course['course_code'], course['course_title'], course['section'], course['teacher'], course['credit_hours'])
+            schedule_course(course['course_code'], course['course_title'], course['section'], course['teacher'], course['credit_hours'])
         
         st.success("Timetable updated with new courses!")
         timetable_data = get_timetable()
         if timetable_data:
             df = pd.DataFrame(timetable_data)
             st.dataframe(df)
-    else:
-        st.error("No new courses to add.")
 
 # Option to download timetable as Excel file
 st.header("Download Timetable")
