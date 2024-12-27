@@ -50,10 +50,77 @@ def assign_resource_person(course_code, teacher):
             course['teacher'] = teacher
             break
 
-# Streamlit User Interface
-st.title("Course Timetable Generator")
+# Streamlit User Interface with custom styling
+st.markdown("""
+    <style>
+        .header-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
 
-# Section to add a new course
+        .btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+            padding: 10px 30px;
+            font-size: 16px;
+            border-radius: 5px;
+            text-decoration: none;
+        }
+
+        .btn-primary:hover {
+            background-color: #0056b3;
+            border-color: #004085;
+        }
+
+        .btn-success {
+            background-color: #28a745;
+            border-color: #28a745;
+            padding: 10px 30px;
+            font-size: 16px;
+            border-radius: 5px;
+            text-decoration: none;
+        }
+
+        .btn-success:hover {
+            background-color: #218838;
+            border-color: #1e7e34;
+        }
+
+        .container {
+            background-color: white;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            padding: 30px;
+            margin-top: 50px;
+            width: 90%;
+            max-width: 1200px;
+        }
+
+        .table th, .table td {
+            text-align: center;
+        }
+
+        .table th {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .table tbody tr:hover {
+            background-color: #f1f1f1;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+# Page Title and Header
+st.markdown("""
+    <div class="header-section">
+        <h1>UMT Automated Timetable Generator</h1>
+        <p class="lead">System developed by INFS Faculty</p>
+        <hr>
+    </div>
+""", unsafe_allow_html=True)
+
+# Add Course Section
 st.header("Add a New Course")
 
 with st.form(key='add_course_form'):
@@ -79,7 +146,7 @@ with st.form(key='add_course_form'):
         else:
             st.error("Please fill all the fields.")
 
-# Section to assign a resource person (teacher) to a course
+# Assign Teacher Section
 st.header("Assign Teacher to a Course")
 
 with st.form(key='assign_teacher_form'):
@@ -92,7 +159,7 @@ with st.form(key='assign_teacher_form'):
         assign_resource_person(course_code, teacher)
         st.success(f"Teacher {teacher} assigned to course {course_code} successfully!")
 
-# Display timetable section
+# Display Timetable Section
 st.header("Generated Timetable")
 
 # Fetch timetable data
