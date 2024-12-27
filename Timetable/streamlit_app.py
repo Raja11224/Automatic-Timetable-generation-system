@@ -1,198 +1,158 @@
-import streamlit as st
-import pandas as pd
+from flask import Flask, render_template, request, redirect, send_file
 from collections import defaultdict
 import random
+import pandas as pd
 from io import BytesIO
 
-# Initialize session state for courses and timetable
-if 'courses' not in st.session_state:
-    st.session_state.courses = []
+app = Flask(__name__)
 
-if 'generated' not in st.session_state:
-    st.session_state.generated = False
-
-if 'locked' not in st.session_state:
-    st.session_state.locked = False
-
-if 'timetable' not in st.session_state:
-    st.session_state.timetable = defaultdict(lambda: defaultdict(list))
-
-# Initialize form fields in session_state if not already initialized
-if 'course_code' not in st.session_state:
-    st.session_state.course_code = ''
-
-if 'course_title' not in st.session_state:
-    st.session_state.course_title = ''
-
-if 'section' not in st.session_state:
-    st.session_state.section = ''
-
-if 'credit_hours' not in st.session_state:
-    st.session_state.credit_hours = 1
-
-if 'teacher' not in st.session_state:
-    st.session_state.teacher = ''
+# Global storage for courses, timetable, and teachers
+courses = []
+timetable = defaultdict(lambda: defaultdict(list))  # Dictionary to hold the timetable for each day
+teachers = []  # List to store unique teachers
+generated = False  # Flag to track if timetable has been generated
 
 # Sample rooms for simplicity
 rooms = ["CB1-101", "CB1-102", "CB1-103", "CB1-104", "CB1-105", "CB1-106"]
-time_slots = ["8:00-9:00", "9:00-10:00", "10:00-11:00", "11:00-12:00", "12:00-1:00", "1:00-2:00", "2:00-3:00", "3:00-4:00", "4:00-5:00"]
+time_slots = ["8:00-9:00", "9:00-10:00", "10:00-11:00", "11:00-12:00", "12:00-1:00"]
 
-# Function to get courses
-def get_courses():
-    return [{
-        'course_code': course['course_code'],
-        'course_title': course['course_title'],
-        'section': course['section'],
-        'teacher': course['teacher']
-    } for course in st.session_state.courses]
+@app.route('/')
+def index():
+    return render_template('index.html', courses=courses, teachers=teachers, timetable=timetable, generated=generated)
 
-# Function to get the timetable
-def get_timetable():
-    timetable_data = []
-    for course in st.session_state.courses:
-        course_times = {'Course Code': course['course_code'],
+@app.route('/add_course', methods=['POST'])
+def add_course():
+    course_code = request.form['course_code']
+    course_title = request.form['course_title']
+    section = request.form['section']
+    credit_hours = int(request.form['credit_hours'])
+    teacher = request.form['teacher']
+
+    # Create the course entry
+    course = {
+        'course_code': course_code,
+        'course_title': course_title,
+        'section': section,
+        'credit_hours': credit_hours,
+        'teacher': teacher
+    }
+
+    # Add course to courses list
+    courses.append(course)
+
+    # Add teacher to teachers list if not already present
+    if teacher not in teachers:
+        teachers.append(teacher)
+
+    global generated
+    generated = False  # Reset the timetable when a new course is added
+
+    return redirect('/')
+
+@app.route('/assign_resource_person', methods=['POST'])
+def assign_resource_person():
+    course_code = request.form['course_code']  # Get the selected course code
+    teacher = request.form['teacher']  # Get the selected teacher
+
+    # Find the course and assign the resource person (teacher)
+    for course in courses:
+        if course['course_code'] == course_code:
+            course['teacher'] = teacher  # Assign the new teacher to the course
+            break
+    
+    return redirect('/')  # Redirect to the index page to see the updated course list
+
+@app.route('/generate_timetable', methods=['POST'])
+def generate_timetable():
+    global timetable, generated
+    if not generated:  # Only generate the timetable if it hasn't been generated already
+        # Schedule the courses and generate the timetable, while preserving the old courses
+        for course in courses:
+            if not any(timetable[day].get(course['course_code']) for day in timetable):
+                schedule_course(course['course_code'], course['course_title'], course['section'], course['teacher'], course['credit_hours'])
+
+        generated = True  # Mark the timetable as generated
+    
+    return render_template('index.html', courses=courses, teachers=teachers, timetable=timetable, generated=generated)
+
+@app.route('/download_excel')
+def download_excel():
+    # Prepare data for Excel
+    data = []
+    for course in courses:
+        for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']:
+            if course['course_code'] in timetable[day]:
+                for session in timetable[day][course['course_code']]:
+                    data.append({
+                        'Course Code': course['course_code'],
                         'Course Title': course['course_title'],
                         'Section': course['section'],
-                        'Teacher': course['teacher']}
-        
-        for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']:
-            day_schedule = []
-            for session in st.session_state.timetable[day].get(course['course_code'], []):
-                day_schedule.append(f"{session['time']} (Room: {session['room']})")
-            course_times[day] = ", ".join(day_schedule) if day_schedule else "Not scheduled"
-        
-        timetable_data.append(course_times)
-    return timetable_data
-
-# Function to assign a teacher to a course
-def assign_resource_person(course_code, teacher):
-    for course in st.session_state.courses:
-        if course['course_code'] == course_code:
-            course['teacher'] = teacher
-            break
-
-# Streamlit User Interface
-st.title("Course Timetable Generator")
-
-# Section to add a new course
-st.header("Add a New Course")
-
-# Check if the timetable is locked (already generated)
-if st.session_state.locked:
-    st.warning("Timetable is locked. New courses will be added without modifying the existing timetable.")
-
-# Create the form and submit logic
-with st.form(key='add_course_form'):
-    course_code = st.text_input("Course Code", value=st.session_state.course_code)
-    course_title = st.text_input("Course Title", value=st.session_state.course_title)
-    section = st.text_input("Section", value=st.session_state.section)
-    credit_hours = st.number_input("Credit Hours", min_value=1, max_value=5, value=st.session_state.credit_hours)
-    teacher = st.text_input("Teacher", value=st.session_state.teacher)
+                        'Credit Hours': course['credit_hours'],
+                        'Teacher': course['teacher'],
+                        'Day': day,
+                        'Time': session['time'],
+                        'Room': session['room']
+                    })
     
-    submit_button = st.form_submit_button(label="Add Course")
-    
-    if submit_button:
-        if course_code and course_title and section and teacher:
-            st.session_state.courses.append({
-                'course_code': course_code,
-                'course_title': course_title,
-                'section': section,
-                'credit_hours': credit_hours,
-                'teacher': teacher
-            })
-            st.success("Course added successfully!")
-            
-            # Clear form fields by resetting session state before the form is shown again
-            st.session_state.course_code = ''
-            st.session_state.course_title = ''
-            st.session_state.section = ''
-            st.session_state.credit_hours = 1
-            st.session_state.teacher = ''
-        else:
-            st.error("Please fill all the fields.")
+    # Convert the data to a DataFrame
+    df = pd.DataFrame(data)
 
-# Section to assign a resource person (teacher) to a course
-st.header("Assign Teacher to a Course")
+    # Write the DataFrame to a BytesIO buffer
+    buffer = BytesIO()
+    with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Timetable')
 
-with st.form(key='assign_teacher_form'):
-    course_code = st.selectbox("Select Course", [course['course_code'] for course in get_courses()])
-    teacher = st.text_input("Teacher")
-    
-    submit_button = st.form_submit_button(label="Assign Teacher")
+    # Move buffer position to the beginning
+    buffer.seek(0)
 
-    if submit_button:
-        assign_resource_person(course_code, teacher)
-        st.success(f"Teacher {teacher} assigned to course {course_code} successfully!")
+    # Return the Excel file as a download
+    return send_file(buffer, as_attachment=True, download_name="timetable.xlsx", mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
-# Display added courses
-st.header("Added Courses")
-if st.session_state.courses:
-    for course in st.session_state.courses:
-        st.write(f"{course['course_code']} - {course['course_title']} (Section: {course['section']}, Teacher: {course['teacher']})")
-else:
-    st.write("No courses added yet.")
-
-# Function to generate timetable
-def generate_timetable():
-    if not st.session_state.generated:  # Only generate the timetable if it hasn't been generated already
-        # Schedule the courses and generate the timetable, while preserving the old courses
-        for course in st.session_state.courses:
-            if not any(st.session_state.timetable[day].get(course['course_code']) for day in st.session_state.timetable):
-                schedule_course(course['course_code'], course['course_title'], course['section'], course['teacher'], course['credit_hours'])
-        
-        st.session_state.generated = True  # Mark the timetable as generated
-        st.session_state.locked = True  # Lock the timetable from further changes
-
-# Function to schedule courses based on credit hours and other constraints
+# Function to schedule courses without modifying the existing timetable
 def schedule_course(course_code, course_title, section, teacher, credit_hours):
     num_sessions = credit_hours
     time_slot_index = 0  # Start from the first time slot
 
-    # Track scheduled times for each section
-    section_schedule = defaultdict(list)
-
     if credit_hours == 1:
-        # Lab course: 1 credit hour, schedule three consecutive hours in the same room
+        # Lab course: 1 credit hour, schedule three consecutive hours
         day = random.choice(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'])
         room = random.choice(rooms)
 
-        for i in range(3):  # Schedule three hours
+        # Check if time slots are available for this day and course, and if the section doesn't have another course at the same time
+        for i in range(3):
             time = time_slots[time_slot_index + i]
             if not is_slot_available(day, time, room, section):
                 return schedule_course(course_code, course_title, section, teacher, credit_hours)
 
-            # Track section schedule to avoid conflicts
-            section_schedule[section].append((day, time, room))
-            
-            st.session_state.timetable[day][course_code].append({
+            timetable[day][course_code].append({
                 'time': time,
                 'room': room
             })
         
+        # Update the time slot index (skip three slots)
         time_slot_index = (time_slot_index + 3) % len(time_slots)
-
-    elif credit_hours == 3:
-        # 3 credit hours: schedule two 1.5 hour slots in the same room
+    
+    elif credit_hours == 2:
+        # 2 credit hours: schedule both hours in the same room
         day = random.choice(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'])
         room = random.choice(rooms)
 
-        for i in range(2):  # Schedule two 1.5 hour slots
+        # Check if both consecutive slots are available, and if the section doesn't have another course at the same time
+        for i in range(2):
             time = time_slots[time_slot_index + i]
             if not is_slot_available(day, time, room, section):
                 return schedule_course(course_code, course_title, section, teacher, credit_hours)
 
-            # Track section schedule to avoid conflicts
-            section_schedule[section].append((day, time, room))
-            
-            st.session_state.timetable[day][course_code].append({
+            timetable[day][course_code].append({
                 'time': time,
                 'room': room
             })
         
+        # Update the time slot index (skip two slots)
         time_slot_index = (time_slot_index + 2) % len(time_slots)
 
     else:
-        # For courses with more than 3 credit hours, schedule one slot at a time
+        # For courses with more than 2 credit hours, we schedule one slot at a time
         for _ in range(num_sessions):
             day = random.choice(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'])
             time = time_slots[time_slot_index]
@@ -201,67 +161,21 @@ def schedule_course(course_code, course_title, section, teacher, credit_hours):
             if not is_slot_available(day, time, room, section):
                 return schedule_course(course_code, course_title, section, teacher, credit_hours)
 
-            # Track section schedule to avoid conflicts
-            section_schedule[section].append((day, time, room))
-            
-            st.session_state.timetable[day][course_code].append({
+            timetable[day][course_code].append({
                 'time': time,
                 'room': room
             })
 
             time_slot_index = (time_slot_index + 1) % len(time_slots)
 
-# Check if a time slot is available for a course
+# Check if a time slot is available for a course, considering the section's existing courses as well
 def is_slot_available(day, time, room, section):
-    # Check if the section already has a class scheduled at this time
-    for scheduled_day, scheduled_time, scheduled_room in st.session_state.timetable[day].get(section, []):
-        if scheduled_time == time:
-            return False  # Conflict: same section, same time
-    
-    # Check if the room is already occupied at this time
-    for scheduled_day, scheduled_time, scheduled_room in st.session_state.timetable[day].get(room, []):
-        if scheduled_time == time:
-            return False  # Conflict: same room, same time
-    
+    for course_code in timetable[day]:
+        for session in timetable[day][course_code]:
+            # Check if the section already has a course scheduled at the same time
+            if session['time'] == time and session['room'] == room and any(course['section'] == section for course in courses if course['course_code'] == course_code):
+                return False  # Slot is already taken for the same section at the same time
     return True
 
-# Button to generate timetable
-if st.button("Generate Timetable"):
-    generate_timetable()
-    timetable_data = get_timetable()
-    if timetable_data:
-        df = pd.DataFrame(timetable_data)
-        st.dataframe(df)
-
-# Section to update timetable with new courses without changing the old timetable
-st.header("Update Timetable with New Courses")
-
-update_button = st.button("Update Timetable")
-
-if update_button:
-    if st.session_state.courses:
-        # Only add new courses without modifying the old timetable
-        for course in st.session_state.courses:
-            schedule_course(course['course_code'], course['course_title'], course['section'], course['teacher'], course['credit_hours'])
-        
-        st.success("Timetable updated with new courses!")
-        timetable_data = get_timetable()
-        if timetable_data:
-            df = pd.DataFrame(timetable_data)
-            st.dataframe(df)
-
-# Option to download timetable as Excel file
-st.header("Download Timetable")
-
-download_button = st.button("Download Timetable as Excel")
-
-if download_button:
-    timetable_data = get_timetable()
-    if timetable_data:
-        df = pd.DataFrame(timetable_data)
-        output = BytesIO()
-        df.to_excel(output, index=False, engine='openpyxl')
-        output.seek(0)
-        st.download_button(label="Download Excel", data=output, file_name="timetable.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    else:
-        st.error("No timetable to download.")
+if __name__ == '__main__':
+    app.run(debug=True)
