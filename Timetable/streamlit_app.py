@@ -4,7 +4,7 @@ from collections import defaultdict
 import random
 from io import BytesIO
 
-# Initialize session state for courses, rooms, timetable, and other variables
+# Initialize session state
 if 'courses' not in st.session_state:
     st.session_state.courses = []
 
@@ -17,20 +17,37 @@ if 'locked' not in st.session_state:
 if 'timetable' not in st.session_state:
     st.session_state.timetable = defaultdict(lambda: defaultdict(list))
 
-# Initialize an empty dictionary for rooms
 if 'rooms' not in st.session_state:
-    st.session_state.rooms = {}
+    st.session_state.rooms = []
 
-# Function to generate timetable
-def generate_timetable():
-    if not st.session_state.generated:  # Only generate the timetable if it hasn't been generated already
-        for course in st.session_state.courses:
-            if not any(st.session_state.timetable[day].get(course['course_code']) for day in st.session_state.timetable):
-                schedule_course(course['course_code'], course['course_title'], course['section'], course['room_type'], course['slot_preference'])
-        st.session_state.generated = True
-        st.session_state.locked = True
+# Initialize form fields in session_state if not already initialized
+if 'course_code' not in st.session_state:
+    st.session_state.course_code = ''
 
-# Function to get timetable (excluding teacher details)
+if 'course_title' not in st.session_state:
+    st.session_state.course_title = ''
+
+if 'section' not in st.session_state:
+    st.session_state.section = ''
+
+if 'room_type' not in st.session_state:
+    st.session_state.room_type = ''
+
+if 'slot_preference' not in st.session_state:
+    st.session_state.slot_preference = ''
+
+# Sample time slots
+time_slots = ["8:00-9:00", "9:00-10:00", "10:00-11:00", "11:00-12:00", "12:00-1:00", "1:00-2:00", "2:00-3:00", "3:00-4:00", "4:00-5:00"]
+
+# Function to get courses
+def get_courses():
+    return [{
+        'course_code': course['course_code'],
+        'course_title': course['course_title'],
+        'section': course['section'],
+    } for course in st.session_state.courses]
+
+# Function to get the timetable
 def get_timetable():
     timetable_data = []
     for course in st.session_state.courses:
@@ -47,11 +64,30 @@ def get_timetable():
         timetable_data.append(course_times)
     return timetable_data
 
-# Function to schedule courses based on room type and slot preference
+# Function to add a course
+def add_course(course_code, course_title, section, room_type, slot_preference):
+    st.session_state.courses.append({
+        'course_code': course_code,
+        'course_title': course_title,
+        'section': section,
+        'room_type': room_type,
+        'slot_preference': slot_preference
+    })
+
+# Function to add a room
+def add_room(room_name, room_type):
+    st.session_state.rooms.append({'name': room_name, 'type': room_type})
+
+# Function to delete a room
+def delete_room(room_name):
+    st.session_state.rooms = [room for room in st.session_state.rooms if room['name'] != room_name]
+
+# Function to schedule courses based on slot preference
 def schedule_course(course_code, course_title, section, room_type, slot_preference):
     time_slot_index = 0  # Start from the first time slot
     section_schedule = defaultdict(list)
 
+    # Scheduling logic based on slot preference
     if slot_preference == "3 consecutive 1-hour slots":
         # Assign a lab room for 3 consecutive slots
         day = random.choice(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'])
@@ -59,7 +95,7 @@ def schedule_course(course_code, course_title, section, room_type, slot_preferen
         for i in range(3):  # Schedule three 1-hour slots
             time = time_slots[time_slot_index + i]
             if not is_slot_available(day, time, room, section):
-                return schedule_course(course_code, course_title, section, room_type, slot_preference)
+                return schedule_course(course_code, course_title, section, room_type, slot_preference)  # Try again if slot is not available
             section_schedule[section].append((day, time, room))
             st.session_state.timetable[day][course_code].append({'time': time, 'room': room})
         time_slot_index = (time_slot_index + 3) % len(time_slots)
@@ -71,128 +107,114 @@ def schedule_course(course_code, course_title, section, room_type, slot_preferen
         for i in range(2):  # Schedule two 1.5-hour slots
             time = time_slots[time_slot_index + i]
             if not is_slot_available(day, time, room, section):
-                return schedule_course(course_code, course_title, section, room_type, slot_preference)
+                return schedule_course(course_code, course_title, section, room_type, slot_preference)  # Try again if slot is not available
             section_schedule[section].append((day, time, room))
             st.session_state.timetable[day][course_code].append({'time': time, 'room': room})
         time_slot_index = (time_slot_index + 2) % len(time_slots)
 
     else:
-        # For other slot preferences, assign 1-hour slots to the required room type
+        # For Normal 1-hour slots
         day = random.choice(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'])
-        room = get_available_room(room_type)  # Get the appropriate room type
+        room = get_available_room(room_type)  # Get the appropriate room type (Theory or Lab)
         for _ in range(1):  # Assuming normal 1-hour slots are scheduled for each course
             time = time_slots[time_slot_index]
             if not is_slot_available(day, time, room, section):
-                return schedule_course(course_code, course_title, section, room_type, slot_preference)
+                return schedule_course(course_code, course_title, section, room_type, slot_preference)  # Try again if slot is not available
             section_schedule[section].append((day, time, room))
             st.session_state.timetable[day][course_code].append({'time': time, 'room': room})
             time_slot_index = (time_slot_index + 1) % len(time_slots)
 
+# Helper function to get available room
+def get_available_room(room_type):
+    available_rooms = []
+    for room in st.session_state.rooms:
+        if room_type == "Lab" and room["type"] == "Lab":
+            available_rooms.append(room["name"])
+        elif room_type == "Theory" and room["type"] == "Theory":
+            available_rooms.append(room["name"])
+
+    if available_rooms:
+        return random.choice(available_rooms)
+    else:
+        st.warning(f"No available rooms for {room_type} type.")
+        return None
+
 # Check if a time slot is available for a course
 def is_slot_available(day, time, room, section):
+    # Check if the section already has a class scheduled at this time
     for scheduled_day, scheduled_time, scheduled_room in st.session_state.timetable[day].get(section, []):
         if scheduled_time == time:
             return False  # Conflict: same section, same time
     
+    # Check if the room is already occupied at this time
     for scheduled_day, scheduled_time, scheduled_room in st.session_state.timetable[day].get(room, []):
         if scheduled_time == time:
             return False  # Conflict: same room, same time
     
     return True
 
-# Function to get available rooms (based on room type) and check for availability
-def get_available_room(room_type):
-    available_rooms = [room for room, rtype in st.session_state.rooms.items() if rtype == room_type]
-    if not available_rooms:
-        st.warning(f"No {room_type} rooms available.")
-        return None
-    return random.choice(available_rooms)
-
-# Streamlit UI
+# Streamlit User Interface
 st.title("Course Timetable Generator")
 
-# Add a new course form (First Section)
+# Section to add a new course
 st.header("Add a New Course")
 
-if st.session_state.locked:
-    st.warning("Timetable is locked. New courses will be added without modifying the existing timetable.")
-
 with st.form(key='add_course_form'):
-    course_code = st.text_input("Course Code", value="")
-    course_title = st.text_input("Course Title", value="")
-    section = st.text_input("Section", value="")
-    slot_preference = st.selectbox("Slot Preference", ["3 consecutive 1-hour slots", "2 consecutive 1.5-hour slots", "Normal 1-hour slots"])
-    room_type = st.selectbox("Room Type", ["Theory", "Lab"])
+    course_code = st.text_input("Course Code", value=st.session_state.course_code)
+    course_title = st.text_input("Course Title", value=st.session_state.course_title)
+    section = st.text_input("Section", value=st.session_state.section)
+    room_type = st.selectbox("Room Type", ["Theory", "Lab"], index=0)
+    slot_preference = st.selectbox("Slot Preference", ["3 consecutive 1-hour slots", "2 consecutive 1.5-hour slots", "Normal 1-hour slots"], index=0)
     
     submit_button = st.form_submit_button(label="Add Course")
     
     if submit_button:
         if course_code and course_title and section:
-            st.session_state.courses.append({
-                'course_code': course_code,
-                'course_title': course_title,
-                'section': section,
-                'room_type': room_type,
-                'slot_preference': slot_preference
-            })
+            add_course(course_code, course_title, section, room_type, slot_preference)
             st.success("Course added successfully!")
+            # Clear form fields by resetting session state before the form is shown again
+            st.session_state.course_code = ''
+            st.session_state.course_title = ''
+            st.session_state.section = ''
         else:
             st.error("Please fill all the fields.")
 
-# Manage Rooms Section (Add/Delete Room)
+# Section to manage rooms (add or delete rooms)
 st.header("Manage Rooms")
 
-# Add Room Form
+# Add room form
 with st.form(key='add_room_form'):
-    room_name = st.text_input("Room Name (e.g., CB1-107)")
+    room_name = st.text_input("Room Name")
     room_type = st.selectbox("Room Type", ["Theory", "Lab"])
     
-    add_room_button = st.form_submit_button(label="Add Room")
+    submit_button = st.form_submit_button(label="Add Room")
     
-    if add_room_button:
-        if room_name and room_type:
-            if room_name not in st.session_state.rooms:
-                st.session_state.rooms[room_name] = room_type
-                st.success(f"Room {room_name} added successfully as a {room_type} room.")
-            else:
-                st.warning(f"Room {room_name} already exists.")
+    if submit_button:
+        if room_name:
+            add_room(room_name, room_type)
+            st.success(f"Room {room_name} added successfully!")
         else:
-            st.error("Please fill in both room name and room type.")
+            st.error("Please enter a room name.")
 
-# Delete Room Form
+# Room deletion
 with st.form(key='delete_room_form'):
-    room_to_delete = st.selectbox("Select Room to Delete", list(st.session_state.rooms.keys()))
+    delete_room_name = st.selectbox("Select Room to Delete", [room['name'] for room in st.session_state.rooms])
     
-    delete_room_button = st.form_submit_button(label="Delete Room")
+    delete_button = st.form_submit_button(label="Delete Room")
     
-    if delete_room_button:
-        if room_to_delete:
-            del st.session_state.rooms[room_to_delete]
-            st.success(f"Room {room_to_delete} deleted successfully.")
-            st.rerun()  # Refresh the page to update the room list
+    if delete_button:
+        if delete_room_name:
+            delete_room(delete_room_name)
+            st.success(f"Room {delete_room_name} deleted successfully!")
         else:
-            st.warning("No room selected for deletion.")
+            st.error("Please select a room to delete.")
 
-# Generate Timetable Button
-if st.button("Generate Timetable"):
-    generate_timetable()
-    timetable_data = get_timetable()
-    if timetable_data:
-        df = pd.DataFrame(timetable_data)
-        st.dataframe(df)
+# Section to view timetable
+st.header("View Timetable")
 
-# Download Timetable as Excel
-st.header("Download Timetable")
-
-download_button = st.button("Download Timetable as Excel")
-
-if download_button:
-    timetable_data = get_timetable()
-    if timetable_data:
-        df = pd.DataFrame(timetable_data)
-        output = BytesIO()
-        df.to_excel(output, index=False, engine='openpyxl')
-        output.seek(0)
-        st.download_button(label="Download Excel", data=output, file_name="timetable.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    else:
-        st.error("No timetable to download.")
+if st.session_state.courses:
+    timetable = get_timetable()
+    df = pd.DataFrame(timetable)
+    st.dataframe(df)
+else:
+    st.warning("No courses added yet. Please add courses first.")
