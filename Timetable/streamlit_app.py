@@ -19,23 +19,7 @@ if 'timetable' not in st.session_state:
 if 'rooms' not in st.session_state:
     st.session_state.rooms = []
 
-# Initialize form fields in session_state if not already initialized
-if 'course_code' not in st.session_state:
-    st.session_state.course_code = ''
-
-if 'course_title' not in st.session_state:
-    st.session_state.course_title = ''
-
-if 'section' not in st.session_state:
-    st.session_state.section = ''
-
-if 'room_type' not in st.session_state:
-    st.session_state.room_type = ''
-
-if 'slot_preference' not in st.session_state:
-    st.session_state.slot_preference = ''
-
-# Sample time slots
+# Sample time slots (adjust the slots as needed)
 time_slots = ["8:00-9:00", "9:00-10:00", "10:00-11:00", "11:00-12:00", "12:00-1:00", "1:00-2:00", "2:00-3:00", "3:00-4:00", "4:00-5:00"]
 
 # Function to get courses
@@ -88,37 +72,50 @@ def schedule_course(course_code, course_title, section, room_type, slot_preferen
 
     # Scheduling logic based on slot preference
     if slot_preference == "3 consecutive 1-hour slots":
-        # Assign a lab room for 3 consecutive slots
+        # Assign a lab room for 3 consecutive slots, for a single day
         day = random.choice(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'])
-        room = get_available_room("Lab")  # Get a lab room
-        for i in range(3):  # Schedule three 1-hour slots
+        room = get_available_room("Lab")  # Get a lab room for the course
+        time_slots_needed = 3  # We need 3 consecutive hours in a single day
+
+        # Schedule the course for 3 consecutive slots on the chosen day
+        for i in range(time_slots_needed):
             time = time_slots[time_slot_index + i]
             if not is_slot_available(day, time, room, section):
-                return schedule_course(course_code, course_title, section, room_type, slot_preference)  # Try again if slot is not available
+                return schedule_course(course_code, course_title, section, room_type, slot_preference)  # Retry if slot is not available
             section_schedule[section].append((day, time, room))
             st.session_state.timetable[day][course_code].append({'time': time, 'room': room})
+
+        # Move the time_slot_index by 3, as 3 hours have been scheduled
         time_slot_index = (time_slot_index + 3) % len(time_slots)
 
     elif slot_preference == "2 consecutive 1.5-hour slots":
         # Assign a theory room for 2 consecutive 1.5-hour slots
         day = random.choice(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'])
-        room = get_available_room("Theory")  # Get a theory room
-        for i in range(2):  # Schedule two 1.5-hour slots
+        room = get_available_room("Theory")  # Get a theory room for the course
+        time_slots_needed = 2  # We need 2 slots of 1.5 hours each
+
+        # Schedule the course for two 1.5-hour blocks on the chosen day
+        for i in range(time_slots_needed):
             time = time_slots[time_slot_index + i]
             if not is_slot_available(day, time, room, section):
-                return schedule_course(course_code, course_title, section, room_type, slot_preference)  # Try again if slot is not available
+                return schedule_course(course_code, course_title, section, room_type, slot_preference)  # Retry if slot is not available
             section_schedule[section].append((day, time, room))
             st.session_state.timetable[day][course_code].append({'time': time, 'room': room})
+
+        # Move the time_slot_index by 2, as 2 slots have been scheduled
         time_slot_index = (time_slot_index + 2) % len(time_slots)
 
     else:
-        # For Normal 1-hour slots
+        # For Normal 1-hour slots, schedule for one hour
         day = random.choice(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'])
         room = get_available_room(room_type)  # Get the appropriate room type (Theory or Lab)
-        for _ in range(1):  # Assuming normal 1-hour slots are scheduled for each course
+        time_slots_needed = 1  # Only 1 slot is needed for this preference
+
+        # Schedule for one 1-hour slot
+        for _ in range(time_slots_needed):
             time = time_slots[time_slot_index]
             if not is_slot_available(day, time, room, section):
-                return schedule_course(course_code, course_title, section, room_type, slot_preference)  # Try again if slot is not available
+                return schedule_course(course_code, course_title, section, room_type, slot_preference)  # Retry if slot is not available
             section_schedule[section].append((day, time, room))
             st.session_state.timetable[day][course_code].append({'time': time, 'room': room})
             time_slot_index = (time_slot_index + 1) % len(time_slots)
@@ -162,53 +159,17 @@ with st.form(key='add_course_form'):
     course_code = st.text_input("Course Code", value=st.session_state.course_code)
     course_title = st.text_input("Course Title", value=st.session_state.course_title)
     section = st.text_input("Section", value=st.session_state.section)
-    room_type = st.selectbox("Room Type", ["Theory", "Lab"], index=0)
-    slot_preference = st.selectbox("Slot Preference", ["3 consecutive 1-hour slots", "2 consecutive 1.5-hour slots", "Normal 1-hour slots"], index=0)
+    room_type = st.selectbox("Room Type", ["Theory", "Lab"])
+    slot_preference = st.selectbox("Slot Preference", ["3 consecutive 1-hour slots", "2 consecutive 1.5-hour slots", "1-hour slots"])
     
-    submit_button = st.form_submit_button(label="Add Course")
+    add_course_button = st.form_submit_button(label="Add Course")
     
-    if submit_button:
+    if add_course_button:
         if course_code and course_title and section:
             add_course(course_code, course_title, section, room_type, slot_preference)
-            st.success("Course added successfully!")
-            # Clear form fields by resetting session state before the form is shown again
-            st.session_state.course_code = ''
-            st.session_state.course_title = ''
-            st.session_state.section = ''
+            st.success(f"Course {course_code} added successfully!")
         else:
             st.error("Please fill in all fields.")
-
-# Section to add rooms and delete rooms
-st.header("Manage Rooms")
-
-# Room addition
-with st.form(key='add_room_form'):
-    room_name = st.text_input("Room Name")
-    room_type = st.selectbox("Room Type", ["Theory", "Lab"], index=0)
-    add_room_button = st.form_submit_button(label="Add Room")
-    
-    if add_room_button:
-        if room_name:
-            add_room(room_name, room_type)
-            st.success(f"Room {room_name} added successfully!")
-        else:
-            st.error("Please enter a room name.")
-
-# Room deletion
-with st.form(key='delete_room_form'):
-    if st.session_state.rooms:
-        delete_room_name = st.selectbox("Select Room to Delete", [room['name'] for room in st.session_state.rooms])
-    else:
-        delete_room_name = None
-    
-    delete_button = st.form_submit_button(label="Delete Room")
-    
-    if delete_button:
-        if delete_room_name:
-            delete_room(delete_room_name)
-            st.success(f"Room {delete_room_name} deleted successfully!")
-        else:
-            st.error("Please select a room to delete.")
 
 # Section to generate timetable (locked after generation)
 st.header("Generate or Update Timetable")
