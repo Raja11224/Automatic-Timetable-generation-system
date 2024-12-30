@@ -26,7 +26,7 @@ def generate_timetable():
     if not st.session_state.generated:  # Only generate the timetable if it hasn't been generated already
         for course in st.session_state.courses:
             if not any(st.session_state.timetable[day].get(course['course_code']) for day in st.session_state.timetable):
-                schedule_course(course['course_code'], course['course_title'], course['section'], course['credit_hours'])
+                schedule_course(course['course_code'], course['course_title'], course['section'], course['credit_hours'], course['room_type'], course['slot_preference'])
         st.session_state.generated = True
         st.session_state.locked = True
 
@@ -48,29 +48,31 @@ def get_timetable():
     return timetable_data
 
 # Function to schedule courses based on credit hours and room type
-def schedule_course(course_code, course_title, section, credit_hours):
+def schedule_course(course_code, course_title, section, credit_hours, room_type, slot_preference):
     num_sessions = credit_hours
     time_slot_index = 0  # Start from the first time slot
     section_schedule = defaultdict(list)
 
-    if credit_hours == 1:
+    if slot_preference == "3 consecutive 1-hour slots":
+        # Assign a lab room for 3 consecutive slots
         day = random.choice(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'])
         room = get_available_room("Lab")  # Get a lab room
-        for i in range(3):  # Schedule three hours
+        for i in range(3):  # Schedule three 1-hour slots
             time = time_slots[time_slot_index + i]
             if not is_slot_available(day, time, room, section):
-                return schedule_course(course_code, course_title, section, credit_hours)
+                return schedule_course(course_code, course_title, section, credit_hours, room_type, slot_preference)
             section_schedule[section].append((day, time, room))
             st.session_state.timetable[day][course_code].append({'time': time, 'room': room})
         time_slot_index = (time_slot_index + 3) % len(time_slots)
 
-    elif credit_hours == 3:
+    elif slot_preference == "2 consecutive 1.5-hour slots":
+        # Assign a theory room for 2 consecutive 1.5-hour slots
         day = random.choice(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'])
         room = get_available_room("Theory")  # Get a theory room
-        for i in range(2):  # Schedule two 1.5 hour slots
+        for i in range(2):  # Schedule two 1.5-hour slots
             time = time_slots[time_slot_index + i]
             if not is_slot_available(day, time, room, section):
-                return schedule_course(course_code, course_title, section, credit_hours)
+                return schedule_course(course_code, course_title, section, credit_hours, room_type, slot_preference)
             section_schedule[section].append((day, time, room))
             st.session_state.timetable[day][course_code].append({'time': time, 'room': room})
         time_slot_index = (time_slot_index + 2) % len(time_slots)
@@ -79,9 +81,9 @@ def schedule_course(course_code, course_title, section, credit_hours):
         for _ in range(num_sessions):
             day = random.choice(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'])
             time = time_slots[time_slot_index]
-            room = get_available_room("Theory")  # Get a theory room
+            room = get_available_room(room_type)  # Get the appropriate room type
             if not is_slot_available(day, time, room, section):
-                return schedule_course(course_code, course_title, section, credit_hours)
+                return schedule_course(course_code, course_title, section, credit_hours, room_type, slot_preference)
             section_schedule[section].append((day, time, room))
             st.session_state.timetable[day][course_code].append({'time': time, 'room': room})
             time_slot_index = (time_slot_index + 1) % len(time_slots)
@@ -120,6 +122,8 @@ with st.form(key='add_course_form'):
     course_title = st.text_input("Course Title", value="")
     section = st.text_input("Section", value="")
     credit_hours = st.number_input("Credit Hours", min_value=1, max_value=5, value=1)
+    slot_preference = st.selectbox("Slot Preference", ["3 consecutive 1-hour slots", "2 consecutive 1.5-hour slots", "Normal 1-hour slots"])
+    room_type = st.selectbox("Room Type", ["Theory", "Lab"])
     
     submit_button = st.form_submit_button(label="Add Course")
     
@@ -129,7 +133,9 @@ with st.form(key='add_course_form'):
                 'course_code': course_code,
                 'course_title': course_title,
                 'section': section,
-                'credit_hours': credit_hours
+                'credit_hours': credit_hours,
+                'room_type': room_type,
+                'slot_preference': slot_preference
             })
             st.success("Course added successfully!")
         else:
@@ -169,7 +175,7 @@ with st.form(key='delete_room_form'):
         else:
             st.warning("No room selected for deletion.")
 
-# Generate Timetable Section
+# Generate Timetable Button
 if st.button("Generate Timetable"):
     generate_timetable()
     timetable_data = get_timetable()
@@ -177,34 +183,3 @@ if st.button("Generate Timetable"):
         df = pd.DataFrame(timetable_data)
         st.dataframe(df)
 
-# Update Timetable with new courses without changing the old timetable
-st.header("Update Timetable with New Courses")
-
-update_button = st.button("Update Timetable")
-
-if update_button:
-    if st.session_state.courses:
-        for course in st.session_state.courses:
-            schedule_course(course['course_code'], course['course_title'], course['section'], course['credit_hours'])
-        
-        st.success("Timetable updated with new courses!")
-        timetable_data = get_timetable()
-        if timetable_data:
-            df = pd.DataFrame(timetable_data)
-            st.dataframe(df)
-
-# Option to download timetable as Excel file
-st.header("Download Timetable")
-
-download_button = st.button("Download Timetable as Excel")
-
-if download_button:
-    timetable_data = get_timetable()
-    if timetable_data:
-        df = pd.DataFrame(timetable_data)
-        output = BytesIO()
-        df.to_excel(output, index=False, engine='openpyxl')
-        output.seek(0)
-        st.download_button(label="Download Excel", data=output, file_name="timetable.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    else:
-        st.error("No timetable to download.")
