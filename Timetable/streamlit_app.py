@@ -177,19 +177,18 @@ with st.form(key='add_course_form'):
             st.session_state.course_title = ''
             st.session_state.section = ''
         else:
-            st.error("Please fill all the fields.")
+            st.error("Please fill in all fields.")
 
-# Section to manage rooms (add or delete rooms)
+# Section to add rooms and delete rooms
 st.header("Manage Rooms")
 
-# Add room form
+# Room addition
 with st.form(key='add_room_form'):
     room_name = st.text_input("Room Name")
-    room_type = st.selectbox("Room Type", ["Theory", "Lab"])
+    room_type = st.selectbox("Room Type", ["Theory", "Lab"], index=0)
+    add_room_button = st.form_submit_button(label="Add Room")
     
-    submit_button = st.form_submit_button(label="Add Room")
-    
-    if submit_button:
+    if add_room_button:
         if room_name:
             add_room(room_name, room_type)
             st.success(f"Room {room_name} added successfully!")
@@ -212,35 +211,30 @@ with st.form(key='delete_room_form'):
         else:
             st.error("Please select a room to delete.")
 
-# Section to generate timetable
+# Section to generate timetable (locked after generation)
 st.header("Generate Timetable")
 
-if st.button("Generate Timetable"):
-    if st.session_state.courses:
-        for course in st.session_state.courses:
-            schedule_course(course['course_code'], course['course_title'], course['section'], course['room_type'], course['slot_preference'])
-        
-        timetable_data = get_timetable()
-        if timetable_data:
-            df = pd.DataFrame(timetable_data)
-            st.dataframe(df)
+if not st.session_state.locked:
+    if st.button("Generate Timetable"):
+        if st.session_state.courses:
+            for course in st.session_state.courses:
+                schedule_course(course['course_code'], course['course_title'], course['section'], course['room_type'], course['slot_preference'])
+
+            timetable_data = get_timetable()
+            if timetable_data:
+                df = pd.DataFrame(timetable_data)
+                st.dataframe(df)
+                st.session_state.locked = True  # Lock the timetable after generation
+                st.success("Timetable successfully generated and locked!")
+            else:
+                st.error("No timetable to display.")
         else:
-            st.error("No timetable to display.")
-    else:
-        st.error("No courses available. Please add courses first.")
+            st.error("No courses available. Please add courses first.")
+else:
+    st.write("The timetable is locked. To add or modify courses, please unlock it.")
+    
+    unlock_button = st.button("Unlock Timetable")
+    if unlock_button:
+        st.session_state.locked = False
+        st.success("Timetable unlocked. You can now add courses or rooms.")
 
-# Section to update timetable with new courses without changing the old timetable
-st.header("Update Timetable with New Courses")
-
-if st.button("Update Timetable"):
-    if st.session_state.courses:
-        for course in st.session_state.courses:
-            schedule_course(course['course_code'], course['course_title'], course['section'], course['room_type'], course['slot_preference'])
-        
-        st.success("Timetable updated with new courses!")
-        timetable_data = get_timetable()
-        if timetable_data:
-            df = pd.DataFrame(timetable_data)
-            st.dataframe(df)
-    else:
-        st.error("No courses available. Please add courses first.")
