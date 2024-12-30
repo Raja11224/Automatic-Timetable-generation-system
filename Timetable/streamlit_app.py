@@ -181,7 +181,37 @@ with st.form(key='add_course_form'):
         else:
             st.error("Please fill in all fields.")
 
-# Section to generate timetable (locked after generation)
+# Section to manage rooms (Add and Delete rooms)
+st.header("Manage Rooms")
+
+# Add Room Section
+with st.form(key="add_room_form"):
+    room_name = st.text_input("Room Name")
+    room_type = st.selectbox("Room Type", ["Theory", "Lab"])
+    
+    add_room_button = st.form_submit_button(label="Add Room")
+    
+    if add_room_button:
+        if room_name:
+            add_room(room_name, room_type)
+            st.success(f"Room {room_name} added successfully!")
+        else:
+            st.error("Please enter a valid room name.")
+
+# Delete Room Section
+st.subheader("Delete Room")
+room_to_delete = st.selectbox("Select Room to Delete", [room['name'] for room in st.session_state.rooms])
+
+delete_room_button = st.button("Delete Room")
+
+if delete_room_button:
+    if room_to_delete:
+        delete_room(room_to_delete)
+        st.success(f"Room {room_to_delete} deleted successfully!")
+    else:
+        st.error("Please select a room to delete.")
+
+# Section to generate or update timetable
 st.header("Generate or Update Timetable")
 
 if not st.session_state.locked:
