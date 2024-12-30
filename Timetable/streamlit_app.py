@@ -198,7 +198,10 @@ with st.form(key='add_room_form'):
 
 # Room deletion
 with st.form(key='delete_room_form'):
-    delete_room_name = st.selectbox("Select Room to Delete", [room['name'] for room in st.session_state.rooms])
+    if st.session_state.rooms:
+        delete_room_name = st.selectbox("Select Room to Delete", [room['name'] for room in st.session_state.rooms])
+    else:
+        delete_room_name = None
     
     delete_button = st.form_submit_button(label="Delete Room")
     
@@ -209,12 +212,35 @@ with st.form(key='delete_room_form'):
         else:
             st.error("Please select a room to delete.")
 
-# Section to view timetable
-st.header("View Timetable")
+# Section to generate timetable
+st.header("Generate Timetable")
 
-if st.session_state.courses:
-    timetable = get_timetable()
-    df = pd.DataFrame(timetable)
-    st.dataframe(df)
-else:
-    st.warning("No courses added yet. Please add courses first.")
+if st.button("Generate Timetable"):
+    if st.session_state.courses:
+        for course in st.session_state.courses:
+            schedule_course(course['course_code'], course['course_title'], course['section'], course['room_type'], course['slot_preference'])
+        
+        timetable_data = get_timetable()
+        if timetable_data:
+            df = pd.DataFrame(timetable_data)
+            st.dataframe(df)
+        else:
+            st.error("No timetable to display.")
+    else:
+        st.error("No courses available. Please add courses first.")
+
+# Section to update timetable with new courses without changing the old timetable
+st.header("Update Timetable with New Courses")
+
+if st.button("Update Timetable"):
+    if st.session_state.courses:
+        for course in st.session_state.courses:
+            schedule_course(course['course_code'], course['course_title'], course['section'], course['room_type'], course['slot_preference'])
+        
+        st.success("Timetable updated with new courses!")
+        timetable_data = get_timetable()
+        if timetable_data:
+            df = pd.DataFrame(timetable_data)
+            st.dataframe(df)
+    else:
+        st.error("No courses available. Please add courses first.")
