@@ -169,7 +169,7 @@ with st.form(key='delete_room_form'):
             del st.session_state.rooms[room_to_delete]
             st.success(f"Room {room_to_delete} deleted successfully.")
             # Re-render the form with the updated list of rooms
-            st.experimental_rerun()
+            st.rerun()  # Use st.rerun() instead of st.experimental_rerun()
         else:
             st.warning("No room selected for deletion.")
 
