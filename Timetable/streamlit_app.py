@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 from collections import defaultdict
 import random
-from io import BytesIO
 
 # Initialize session state
 if 'courses' not in st.session_state:
@@ -212,7 +211,7 @@ with st.form(key='delete_room_form'):
             st.error("Please select a room to delete.")
 
 # Section to generate timetable (locked after generation)
-st.header("Generate Timetable")
+st.header("Generate or Update Timetable")
 
 if not st.session_state.locked:
     if st.button("Generate Timetable"):
@@ -237,4 +236,13 @@ else:
     if unlock_button:
         st.session_state.locked = False
         st.success("Timetable unlocked. You can now add courses or rooms.")
-
+        
+    if st.button("Update Timetable"):
+        if st.session_state.courses:
+            for course in st.session_state.courses:
+                schedule_course(course['course_code'], course['course_title'], course['section'], course['room_type'], course['slot_preference'])
+                
+            timetable_data = get_timetable()
+            df = pd.DataFrame(timetable_data)
+            st.dataframe(df)
+            st.success("Timetable updated successfully!")
