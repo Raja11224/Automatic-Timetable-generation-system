@@ -24,53 +24,14 @@ if 'rooms' not in st.session_state:
 # Streamlit UI
 st.title("Course Timetable Generator")
 
-# Section to manage rooms
-st.header("Manage Rooms")
-
-# Add Room Form
-with st.form(key='add_room_form'):
-    room_name = st.text_input("Room Name (e.g., CB1-107)")
-    room_type = st.selectbox("Room Type", ["Theory", "Lab"])
-    
-    add_room_button = st.form_submit_button(label="Add Room")
-    
-    if add_room_button:
-        if room_name and room_type:
-            if room_name not in st.session_state.rooms:
-                st.session_state.rooms[room_name] = room_type
-                st.success(f"Room {room_name} added successfully as a {room_type} room.")
-            else:
-                st.warning(f"Room {room_name} already exists.")
-        else:
-            st.error("Please provide a valid room name and type.")
-
-# Section to delete a room
-st.header("Delete a Room")
-
-# Delete Room Form
-with st.form(key='delete_room_form'):
-    if st.session_state.rooms:
-        room_to_delete = st.selectbox("Select Room to Delete", list(st.session_state.rooms.keys()))
-        delete_room_button = st.form_submit_button(label="Delete Room")
-        
-        if delete_room_button:
-            if room_to_delete in st.session_state.rooms:
-                del st.session_state.rooms[room_to_delete]
-                st.success(f"Room {room_to_delete} deleted successfully.")
-            else:
-                st.warning("Room not found.")
-    else:
-        st.write("No rooms available to delete.")
-        delete_room_button = st.form_submit_button(label="Delete Room")  # Still adding a submit button
-
-# Section to add a new course
+# Section to add a new course (First Section)
 st.header("Add a New Course")
 
 # Check if the timetable is locked (already generated)
 if st.session_state.locked:
     st.warning("Timetable is locked. New courses will be added without modifying the existing timetable.")
 
-# Create the form and submit logic
+# Create the form and submit logic for adding new course
 with st.form(key='add_course_form'):
     course_code = st.text_input("Course Code", value="")
     course_title = st.text_input("Course Title", value="")
@@ -92,6 +53,45 @@ with st.form(key='add_course_form'):
             st.success("Course added successfully!")
         else:
             st.error("Please fill all the fields.")
+
+# Section to manage rooms (Add/Delete Room)
+
+st.header("Manage Rooms")
+
+# Add Room Form
+with st.form(key='add_room_form'):
+    room_name = st.text_input("Room Name (e.g., CB1-107)")
+    room_type = st.selectbox("Room Type", ["Theory", "Lab"])
+    
+    add_room_button = st.form_submit_button(label="Add Room")
+    
+    if add_room_button:
+        if room_name and room_type:
+            if room_name not in st.session_state.rooms:
+                st.session_state.rooms[room_name] = room_type
+                st.success(f"Room {room_name} added successfully as a {room_type} room.")
+            else:
+                st.warning(f"Room {room_name} already exists.")
+        else:
+            st.error("Please provide a valid room name and type.")
+
+# Delete Room Form
+st.header("Delete a Room")
+
+with st.form(key='delete_room_form'):
+    if st.session_state.rooms:
+        room_to_delete = st.selectbox("Select Room to Delete", list(st.session_state.rooms.keys()))
+        delete_room_button = st.form_submit_button(label="Delete Room")
+        
+        if delete_room_button:
+            if room_to_delete in st.session_state.rooms:
+                del st.session_state.rooms[room_to_delete]
+                st.success(f"Room {room_to_delete} deleted successfully.")
+            else:
+                st.warning("Room not found.")
+    else:
+        st.write("No rooms available to delete.")
+        delete_room_button = st.form_submit_button(label="Delete Room")  # Still adding a submit button for consistency
 
 # Function to get the available rooms (based on room type) and check for availability
 def get_available_room(room_type):
