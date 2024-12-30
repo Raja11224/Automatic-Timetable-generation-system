@@ -197,17 +197,16 @@ if not st.session_state.locked:
         st.session_state.locked = True  # Lock timetable after generation
         st.success("Timetable generated successfully!")
 
-# Update timetable (only allowed if unlocked)
-if st.session_state.locked:
-    st.warning("The timetable is locked. To make changes, please unlock it.")
-    if st.button("Unlock Timetable"):
-        st.session_state.locked = False
-        st.session_state.generated = False
-        st.success("Timetable unlocked! You can now add/remove courses.")
+# Section to update timetable (only allowed after generation and locked)
+if st.session_state.generated and st.session_state.locked:
+    st.header("Update Timetable")
+    if st.button("Update Timetable"):
+        # Schedule any newly added courses or updated preferences
+        for course in st.session_state.courses:
+            schedule_course(course['course_code'], course['course_title'], course['section'], course['room_type'], course['slot_preference'])
 
-# Display Timetable if generated
-if st.session_state.generated and not st.session_state.locked:
-    st.header("Current Timetable (Editable)")
-    timetable_data = get_timetable()
-    df = pd.DataFrame(timetable_data)
-    st.dataframe(df)
+        timetable_data = get_timetable()
+        df = pd.DataFrame(timetable_data)
+        st.dataframe(df)
+        st.session_state.locked = True  # Keep the timetable locked
+        st.success("Timetable updated successfully!")
