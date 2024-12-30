@@ -3,7 +3,7 @@ import pandas as pd
 from collections import defaultdict
 import random
 
-# Initialize session state
+# Initialize session state for courses, timetable, etc.
 if 'courses' not in st.session_state:
     st.session_state.courses = []
 
@@ -18,6 +18,16 @@ if 'timetable' not in st.session_state:
 
 if 'rooms' not in st.session_state:
     st.session_state.rooms = []
+
+# Initialize the course-related state variables to None or empty strings
+if 'course_code' not in st.session_state:
+    st.session_state.course_code = ""
+
+if 'course_title' not in st.session_state:
+    st.session_state.course_title = ""
+
+if 'section' not in st.session_state:
+    st.session_state.section = ""
 
 # Sample time slots (adjust the slots as needed)
 time_slots = ["8:00-9:00", "9:00-10:00", "10:00-11:00", "11:00-12:00", "12:00-1:00", "1:00-2:00", "2:00-3:00", "3:00-4:00", "4:00-5:00"]
