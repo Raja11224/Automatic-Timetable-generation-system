@@ -60,7 +60,8 @@ with st.form(key='delete_room_form'):
             else:
                 st.warning("Room not found.")
     else:
-        st.warning("No rooms available to delete.")
+        st.write("No rooms available to delete.")
+        delete_room_button = st.form_submit_button(label="Delete Room")  # Still adding a submit button
 
 # Section to add a new course
 st.header("Add a New Course")
@@ -218,23 +219,6 @@ def get_timetable():
         
         timetable_data.append(course_times)
     return timetable_data
-
-# Section to update timetable with new courses without changing the old timetable
-st.header("Update Timetable with New Courses")
-
-update_button = st.button("Update Timetable")
-
-if update_button:
-    if st.session_state.courses:
-        # Only add new courses without modifying the old timetable
-        for course in st.session_state.courses:
-            schedule_course(course['course_code'], course['course_title'], course['section'], course['teacher'], course['credit_hours'])
-        
-        st.success("Timetable updated with new courses!")
-        timetable_data = get_timetable()
-        if timetable_data:
-            df = pd.DataFrame(timetable_data)
-            st.dataframe(df)
 
 # Option to download timetable as Excel file
 st.header("Download Timetable")
