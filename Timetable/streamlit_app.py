@@ -1,5 +1,4 @@
 import streamlit as st
-import pandas as pd
 from collections import defaultdict
 import random
 
@@ -29,8 +28,8 @@ if 'course_title' not in st.session_state:
 if 'section' not in st.session_state:
     st.session_state.section = ""
 
-# Sample time slots (adjust the slots as needed)
-time_slots = ["8:00-9:00", "9:00-10:00", "10:00-11:00", "11:00-12:00", "12:00-1:00", "1:00-2:00", "2:00-3:00", "3:00-4:00", "4:00-5:00"]
+# Sample days of the week
+days_of_week = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 
 # Function to get courses
 def get_courses():
@@ -48,7 +47,7 @@ def get_timetable():
                         'Course Title': course['course_title'],
                         'Section': course['section']}
         
-        for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']:
+        for day in days_of_week:
             day_schedule = []
             for session in st.session_state.timetable[day].get(course['course_code'], []):
                 day_schedule.append(f"{session['time']} (Room: {session['room']})")
@@ -77,58 +76,32 @@ def delete_room(room_name):
 
 # Function to schedule courses based on slot preference
 def schedule_course(course_code, course_title, section, room_type, slot_preference):
-    time_slot_index = 0  # Start from the first time slot
-    section_schedule = defaultdict(list)
-
-    # Scheduling logic based on slot preference
+    # Based on the slot preference, we calculate how many slots are needed and for which days
     if slot_preference == "3 consecutive 1-hour slots":
-        # Assign a lab room for 3 consecutive slots, for a single day
-        day = random.choice(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'])
-        room = get_available_room("Lab")  # Get a lab room for the course
-        time_slots_needed = 3  # We need 3 consecutive hours in a single day
-
-        # Schedule the course for 3 consecutive slots on the chosen day
-        for i in range(time_slots_needed):
-            time = time_slots[time_slot_index + i]
-            if not is_slot_available(day, time, room, section):
-                return schedule_course(course_code, course_title, section, room_type, slot_preference)  # Retry if slot is not available
-            section_schedule[section].append((day, time, room))
-            st.session_state.timetable[day][course_code].append({'time': time, 'room': room})
-
-        # Move the time_slot_index by 3, as 3 hours have been scheduled
-        time_slot_index = (time_slot_index + 3) % len(time_slots)
-
+        days_needed = 1  # We need only 1 day for 3 consecutive slots
+        time_slots_needed = 3  # 3 consecutive 1-hour slots
     elif slot_preference == "2 consecutive 1.5-hour slots":
-        # Assign a theory room for 2 consecutive 1.5-hour slots
-        day = random.choice(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'])
-        room = get_available_room("Theory")  # Get a theory room for the course
-        time_slots_needed = 2  # We need 2 slots of 1.5 hours each
-
-        # Schedule the course for two 1.5-hour blocks on the chosen day
-        for i in range(time_slots_needed):
-            time = time_slots[time_slot_index + i]
-            if not is_slot_available(day, time, room, section):
-                return schedule_course(course_code, course_title, section, room_type, slot_preference)  # Retry if slot is not available
-            section_schedule[section].append((day, time, room))
-            st.session_state.timetable[day][course_code].append({'time': time, 'room': room})
-
-        # Move the time_slot_index by 2, as 2 slots have been scheduled
-        time_slot_index = (time_slot_index + 2) % len(time_slots)
-
+        days_needed = 1  # We need only 1 day for 2 consecutive 1.5-hour slots
+        time_slots_needed = 2  # 2 consecutive 1.5-hour slots
     else:
-        # For Normal 1-hour slots, schedule for one hour
-        day = random.choice(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'])
+        days_needed = 2  # We can spread 1-hour slots across two days
+        time_slots_needed = 1  # Just 1-hour slots for this preference
+    
+    # Start scheduling for the given preference
+    day_count = 0
+    for _ in range(days_needed):
+        if day_count >= len(days_of_week):
+            break
+        day = days_of_week[day_count]
         room = get_available_room(room_type)  # Get the appropriate room type (Theory or Lab)
-        time_slots_needed = 1  # Only 1 slot is needed for this preference
-
-        # Schedule for one 1-hour slot
-        for _ in range(time_slots_needed):
-            time = time_slots[time_slot_index]
+        
+        for i in range(time_slots_needed):
+            time = f"{i+1}:00 - {i+2}:00"
             if not is_slot_available(day, time, room, section):
                 return schedule_course(course_code, course_title, section, room_type, slot_preference)  # Retry if slot is not available
-            section_schedule[section].append((day, time, room))
             st.session_state.timetable[day][course_code].append({'time': time, 'room': room})
-            time_slot_index = (time_slot_index + 1) % len(time_slots)
+        
+        day_count += 1
 
 # Helper function to get available room
 def get_available_room(room_type):
