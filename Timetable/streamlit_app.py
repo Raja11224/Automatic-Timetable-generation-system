@@ -49,6 +49,7 @@ def get_timetable():
                         'Course Title': course['course_title'],
                         'Section': course['section']}
         
+        # For each day of the week, check if this course has a scheduled time on that day
         for day in days_of_week:
             day_schedule = []
             for session in st.session_state.timetable[day].get(course['course_code'], []):
