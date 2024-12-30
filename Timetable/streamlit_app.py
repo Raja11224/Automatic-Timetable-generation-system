@@ -81,33 +81,10 @@ def delete_room(room_name):
 def schedule_course(course_code, course_title, section, room_type, slot_preference):
     if slot_preference == "1.5 Hour slots":
         # Allocate 2 1.5-hour slots on separate days
-        days_needed = 2
-        time_slots_needed = 1  # 1.5-hour slot per day
+        allocate_1_5_hour_slots(course_code, course_title, section, room_type)
     elif slot_preference == "3 Hour consecutive slot":
         # Allocate 1 3-hour consecutive slot
-        days_needed = 1
-        time_slots_needed = 1  # Just 1 time slot for this preference
-
-    day_count = 0
-    for _ in range(days_needed):
-        if day_count >= len(days_of_week):
-            break
-        day = days_of_week[day_count]
-
-        # Check if the room is available for this day
-        room = get_available_room(room_type)
-
-        # Assign the correct slot based on preference
-        if slot_preference == "1.5 Hour slots":
-            time = allocate_1_5_hour_slots(day, room)
-        elif slot_preference == "3 Hour consecutive slot":
-            time = allocate_3_hour_consecutive_slot(day, room)
-
-        # If time allocation is successful, add to the timetable
-        if time:
-            st.session_state.timetable[day][course_code].append({'time': time, 'room': room})
-        
-        day_count += 1
+        allocate_3_hour_consecutive_slot(course_code, course_title, section, room_type)
 
 # Helper function to get available room
 def get_available_room(room_type):
@@ -125,41 +102,41 @@ def get_available_room(room_type):
         return None
 
 # Function to allocate 1.5 hour slots on two different days
-def allocate_1_5_hour_slots(day, room):
-    available_days = [d for d in days_of_week if d != day]  # Avoid same-day allocation
-    
-    # Try to assign 1.5-hour slots to two different days
-    allocated_days = random.sample(available_days, 2)
-    time_slot_1 = available_time_slots[random.randint(0, len(available_time_slots) - 2)]
-    time_slot_2 = available_time_slots[random.randint(0, len(available_time_slots) - 2)]
+def allocate_1_5_hour_slots(course_code, course_title, section, room_type):
+    room = get_available_room(room_type)
+    if room:
+        available_days = days_of_week.copy()  # Available days for assignment
+        # Randomly pick two different days for 1.5-hour slots
+        day1, day2 = random.sample(available_days, 2)
 
-    # Ensure that time slots do not overlap
-    return f"{allocated_days[0]}: {time_slot_1} (Room: {room}), {allocated_days[1]}: {time_slot_2} (Room: {room})"
+        # Assign 1.5-hour slots on each day
+        time_slot_1 = random.choice(available_time_slots)
+        time_slot_2 = random.choice(available_time_slots)
+
+        # Assign the slots
+        st.session_state.timetable[day1][course_code].append({'time': time_slot_1, 'room': room})
+        st.session_state.timetable[day2][course_code].append({'time': time_slot_2, 'room': room})
 
 # Function to allocate a 3-hour consecutive slot
-def allocate_3_hour_consecutive_slot(day, room):
-    for i in range(len(available_time_slots) - 2):
-        # Check if three consecutive slots are available
-        if not is_slot_available(day, available_time_slots[i], room):
-            continue
-        if not is_slot_available(day, available_time_slots[i + 1], room):
-            continue
-        if not is_slot_available(day, available_time_slots[i + 2], room):
-            continue
-        
-        # Return the 3-hour consecutive slot
-        return f"{available_time_slots[i]} - {available_time_slots[i + 2]} (Room: {room})"
+def allocate_3_hour_consecutive_slot(course_code, course_title, section, room_type):
+    room = get_available_room(room_type)
+    if room:
+        # Try to assign a 3-hour consecutive slot on any available day
+        available_days = days_of_week.copy()
+        for day in available_days:
+            for i in range(len(available_time_slots) - 2):  # Check if 3 consecutive slots are available
+                slot_1 = available_time_slots[i]
+                slot_2 = available_time_slots[i + 1]
+                slot_3 = available_time_slots[i + 2]
 
-    st.warning(f"No available slots on {day} for 3-hour consecutive preference.")
-    return None
-
-# Check if a time slot is available for a course
-def is_slot_available(day, time, room):
-    for scheduled_day, scheduled_time, scheduled_room in st.session_state.timetable[day].get(room, []):
-        if scheduled_time == time:
-            return False  # Conflict: same room, same time
-    
-    return True
+                # If these slots are free on this day, assign the 3-hour slot
+                st.session_state.timetable[day][course_code].append({
+                    'time': f"{slot_1} - {slot_3}",
+                    'room': room
+                })
+                break
+            else:
+                continue
 
 # Streamlit User Interface
 st.title("Course Timetable Generator")
