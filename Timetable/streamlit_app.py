@@ -185,11 +185,29 @@ if delete_room_button:
     st.success(f"Room {room_to_delete} deleted successfully!")
 
 # Section to generate timetable
-if st.button("Generate Timetable"):
-    for course in st.session_state.courses:
-        schedule_course(course['course_code'], course['course_title'], course['section'], course['room_type'], course['slot_preference'])
-    
+if not st.session_state.locked:
+    if st.button("Generate Timetable"):
+        for course in st.session_state.courses:
+            schedule_course(course['course_code'], course['course_title'], course['section'], course['room_type'], course['slot_preference'])
+        
+        timetable_data = get_timetable()
+        df = pd.DataFrame(timetable_data)
+        st.dataframe(df)
+        st.session_state.generated = True
+        st.session_state.locked = True  # Lock timetable after generation
+        st.success("Timetable generated successfully!")
+
+# Update timetable (only allowed if unlocked)
+if st.session_state.locked:
+    st.warning("The timetable is locked. To make changes, please unlock it.")
+    if st.button("Unlock Timetable"):
+        st.session_state.locked = False
+        st.session_state.generated = False
+        st.success("Timetable unlocked! You can now add/remove courses.")
+
+# Display Timetable if generated
+if st.session_state.generated and not st.session_state.locked:
+    st.header("Current Timetable (Editable)")
     timetable_data = get_timetable()
     df = pd.DataFrame(timetable_data)
     st.dataframe(df)
-    st.success("Timetable generated successfully!")
