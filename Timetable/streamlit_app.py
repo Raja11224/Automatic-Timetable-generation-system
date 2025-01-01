@@ -59,39 +59,38 @@ def get_available_room(room_type):
         st.warning(f"No available rooms for {room_type} type.")
         return None
 
-# Function to check if room is available at the given time
+# Function to check if the room is available for a particular day and time slot
 def is_room_available(day, time_slot, room, course_code):
-    # Check if any session for this course is scheduled at the same time in the same room
-    for other_course_code in st.session_state.timetable[day]:
-        if course_code != other_course_code:
-            for session in st.session_state.timetable[day].get(other_course_code, []):
-                if session['time'] == time_slot and session['room'] == room:
-                    return False  # Room is already occupied at that time
+    for course in st.session_state.timetable[day].values():
+        for session in course:
+            if session['time'] == time_slot and session['room'] == room:
+                return False  # Room is already occupied for this time slot
     return True  # Room is available
 
-# Function to allocate a Lab course (2 consecutive 1.5-hour blocks on a single day)
+
+# Function to allocate a Lab course (two consecutive 1.5-hour blocks on the same day)
 def allocate_lab_course(course_code, course_title, section, room_type):
     room = get_available_room(room_type)
     if room:
-        # Choose a random day for the lab (only one day)
+        # Choose a random day for the lab course (one day only)
         available_days = days_of_week.copy()
         random.shuffle(available_days)
-
-        # Iterate over the shuffled days and try to assign the lab to one day
+        
         for day in available_days:
-            # Check for 2 consecutive time slots availability (1.5 hour x 2)
-            for i in range(len(available_time_slots) - 1):  # Ensure 2 consecutive slots
+            # Check for 2 consecutive 1.5-hour time slots availability
+            for i in range(len(available_time_slots) - 1):  # Ensure two consecutive slots
                 slot_1 = available_time_slots[i]
                 slot_2 = available_time_slots[i + 1]
-
-                # If the room is available, assign the 3-hour block
-                if is_room_available(day, f"{slot_1} - {slot_2}", room, course_code):
+                
+                if is_room_available(day, slot_1, room, course_code) and is_room_available(day, slot_2, room, course_code):
+                    # Assign the two consecutive time slots for the lab course
                     st.session_state.timetable[day][course_code].append({
                         'time': f"{slot_1} - {slot_2}",
                         'room': room
                     })
-                    break  # Once scheduled, stop and break
-            break  # Once scheduled, stop after assigning to one day
+                    break  # Once scheduled on one day, stop
+            break  # Stop after assigning on one day
+
 
 # Function to allocate a Theory course (1.5-hour blocks on two different days)
 def allocate_theory_course(course_code, course_title, section, room_type):
@@ -101,7 +100,6 @@ def allocate_theory_course(course_code, course_title, section, room_type):
         available_days = days_of_week.copy()
         random.shuffle(available_days)
 
-        # Iterate over the shuffled days and try to assign the theory to two days
         assigned_slots = 0
         for day in available_days:
             if assigned_slots >= 2:  # Assign only on two different days
@@ -109,8 +107,6 @@ def allocate_theory_course(course_code, course_title, section, room_type):
             # Check for 1.5-hour time slot availability
             for i in range(len(available_time_slots)):
                 slot_1 = available_time_slots[i]
-
-                # If the time slot is available, assign the 1.5-hour block
                 if is_room_available(day, slot_1, room, course_code):
                     st.session_state.timetable[day][course_code].append({
                         'time': slot_1,
@@ -216,3 +212,8 @@ if st.session_state.generated and st.session_state.locked:
         timetable_df = pd.DataFrame(timetable_data)
         st.dataframe(timetable_df)
         st.success("Timetable updated successfully!")
+# Prevent updating timetable once it's generated
+if st.session_state.generated:
+    st.warning("The timetable has already been generated. To make changes, please click 'Update Timetable'.")
+    return
+
