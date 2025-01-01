@@ -63,6 +63,13 @@ def get_available_room(room_type):
         st.warning(f"No available rooms for {room_type} type.")
         return None
 
+# Function to check if room is already occupied at the given time
+def is_room_available(day, time_slot, room, course_code):
+    for session in st.session_state.timetable[day].get(course_code, []):
+        if session['time'] == time_slot and session['room'] == room:
+            return False  # Room is already occupied
+    return True  # Room is available
+
 # Function to allocate a Lab course (2 consecutive 1.5-hour blocks)
 def allocate_lab_course(course_code, course_title, section, room_type):
     room = get_available_room(room_type)
@@ -84,8 +91,8 @@ def allocate_lab_course(course_code, course_title, section, room_type):
                 slot_1 = available_time_slots[i]
                 slot_2 = available_time_slots[i + 1]
 
-                # If slots are available, assign the 3-hour block
-                if not any(session['room'] == room and session['time'] == f"{slot_1} - {slot_2}" for session in st.session_state.timetable[day].get(course_code, [])):
+                # If the room is available, assign the 3-hour block
+                if is_room_available(day, f"{slot_1} - {slot_2}", room, course_code):
                     st.session_state.timetable[day][course_code].append({
                         'time': f"{slot_1} - {slot_2}",
                         'room': room
@@ -117,7 +124,7 @@ def allocate_theory_course(course_code, course_title, section, room_type):
                 slot_1 = available_time_slots[i]
 
                 # If the time slot is available, assign the 1.5-hour block
-                if not any(session['room'] == room and session['time'] == f"{slot_1}" for session in st.session_state.timetable[day].get(course_code, [])):
+                if is_room_available(day, slot_1, room, course_code):
                     st.session_state.timetable[day][course_code].append({
                         'time': slot_1,
                         'room': room
@@ -188,20 +195,27 @@ with st.form(key='add_room_form'):
         else:
             st.error("Please provide a room name.")
 
-# Section to generate timetable
-if not st.session_state.locked:
-    if st.button("Generate Timetable"):
-        for course in st.session_state.courses:
-            schedule_course(course['course_code'], course['course_title'], course['section'], course['room_type'], course['slot_preference'])
-        
-        timetable_data = get_timetable()
-        timetable_df = pd.DataFrame(timetable_data)
-        st.dataframe(timetable_df)
-        st.success("Timetable generated successfully!")
-        st.session_state.generated = True
-        st.session_state.locked = True
+# Display Rooms
+if st.session_state.rooms:
+    st.subheader("Available Rooms:")
+    rooms_df = pd.DataFrame(st.session_state.rooms)
+    st.dataframe(rooms_df)
 
-# Section to update timetable (only allowed after generation and locked)
+# Generate Timetable
+if st.button("Generate Timetable"):
+    # Schedule all courses
+    for course in st.session_state.courses:
+        schedule_course(course['course_code'], course['course_title'], course['section'], course['room_type'], course['slot_preference'])
+    
+    # Show generated timetable
+    timetable_data = get_timetable()
+    timetable_df = pd.DataFrame(timetable_data)
+    st.dataframe(timetable_df)
+    st.success("Timetable generated successfully!")
+    st.session_state.generated = True
+    st.session_state.locked = True
+
+# Update Timetable
 if st.session_state.generated and st.session_state.locked:
     st.header("Update Timetable")
     if st.button("Update Timetable"):
