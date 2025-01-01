@@ -19,16 +19,6 @@ if 'timetable' not in st.session_state:
 if 'rooms' not in st.session_state:
     st.session_state.rooms = []
 
-# Initialize course-related state variables
-if 'course_code' not in st.session_state:
-    st.session_state.course_code = ""
-
-if 'course_title' not in st.session_state:
-    st.session_state.course_title = ""
-
-if 'section' not in st.session_state:
-    st.session_state.section = ""
-
 # Sample days of the week and available time slots
 days_of_week = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
 available_time_slots = ["8:00 - 9:30", "9:30 - 11:00", "11:00 - 12:30", "12:30 - 2:00", "2:00 - 3:30", "3:30 - 5:00"]
@@ -106,13 +96,16 @@ def allocate_1_5_hour_slots(course_code, course_title, section, room_type):
     room = get_available_room(room_type)
     if room:
         available_days = days_of_week.copy()
+        days_for_course = []  # Track the days chosen for this course
 
         # Randomly pick the first day for the first 1.5-hour block
         first_day = random.choice(available_days)
+        days_for_course.append(first_day)
         available_days.remove(first_day)  # Remove the selected first day for the second block
 
         # Randomly select the second day for the remaining 1.5-hour block
         second_day = random.choice(available_days)
+        days_for_course.append(second_day)
 
         # Randomly select 1.5-hour time slots for each day
         time_slot_1 = random.choice(available_time_slots)
