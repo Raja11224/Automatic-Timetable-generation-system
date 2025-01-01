@@ -1,6 +1,8 @@
 import streamlit as st
 import random
 from collections import defaultdict
+import pandas as pd
+
 
 # Initialize session state for courses, timetable, rooms, etc.
 if 'courses' not in st.session_state:
