@@ -184,6 +184,15 @@ if delete_room_button:
     delete_room(room_to_delete)
     st.success(f"Room {room_to_delete} deleted successfully!")
 
+# Section to display the list of added courses at the bottom
+st.header("Courses Added")
+
+if st.session_state.courses:
+    courses_df = pd.DataFrame(st.session_state.courses)
+    st.dataframe(courses_df)
+else:
+    st.write("No courses added yet.")
+
 # Section to generate timetable
 if not st.session_state.locked:
     if st.button("Generate Timetable"):
