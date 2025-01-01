@@ -203,19 +203,17 @@ if st.button("Generate Timetable"):
         timetable_data = get_timetable()
         timetable_df = pd.DataFrame(timetable_data)
         st.dataframe(timetable_df)
-        st.success("Timetable generated successfully!")
         
-        # Lock the timetable to prevent changes
         st.session_state.generated = True
         st.session_state.locked = True
-    else:
-        st.warning("Timetable has already been generated.")
+        st.success("Timetable generated and locked!")
 
-# Update Timetable (Only for newly added courses after generation)
+# Update Timetable (for adding new courses without modifying existing ones)
 if st.session_state.generated and st.session_state.locked:
     st.header("Update Timetable")
+    
     if st.button("Update Timetable"):
-        # Schedule only newly added courses
+        # Only schedule newly added courses
         for course in st.session_state.courses:
             if course['course_code'] not in [c['course_code'] for c in st.session_state.courses]:
                 schedule_course(course['course_code'], course['course_title'], course['section'], course['room_type'], course['slot_preference'])
