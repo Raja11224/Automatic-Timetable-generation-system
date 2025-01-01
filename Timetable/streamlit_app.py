@@ -88,7 +88,7 @@ def allocate_theory_course(course_code, course_title, section, room_type):
         st.session_state.timetable[day1][course_code].append({'time': time_slot_1, 'room': room})
         st.session_state.timetable[day2][course_code].append({'time': time_slot_2, 'room': room})
 
-# Function to allocate a 3-hour consecutive block (Lab)
+# Function to allocate a 3-hour consecutive block (Lab) with two 1.5-hour time slots
 def allocate_lab_course(course_code, course_title, section, room_type):
     room = get_available_room(room_type)
     if room:
@@ -103,21 +103,22 @@ def allocate_lab_course(course_code, course_title, section, room_type):
 
         # Iterate over the shuffled days and try to assign the lab to only one day
         for day in available_days:
-            # Check for 3 consecutive time slots availability
-            for i in range(len(available_time_slots) - 2):  # Ensure 3 consecutive slots
-                # Get 3 consecutive time slots
+            # Check for 2 consecutive time slots availability (1.5 hours each)
+            for i in range(len(available_time_slots) - 1):  # Ensure 2 consecutive slots
+                # Get 2 consecutive time slots
                 slot_1 = available_time_slots[i]
                 slot_2 = available_time_slots[i + 1]
-                slot_3 = available_time_slots[i + 2]
 
-                # If these slots are available on this day, assign the 3-hour block
-                st.session_state.timetable[day][course_code].append({
-                    'time': f"{slot_1} - {slot_3}",  # Combine the 3 consecutive slots into one 3-hour block
-                    'room': room
-                })
-                break  # Once scheduled on one day, stop
+                # Check if both slots are available on the chosen day
+                if slot_1 not in [s['time'] for s in st.session_state.timetable[day].get(course_code, [])] and \
+                   slot_2 not in [s['time'] for s in st.session_state.timetable[day].get(course_code, [])]:
+                    # If both slots are available, assign the 3-hour block (2 consecutive slots)
+                    st.session_state.timetable[day][course_code].append({
+                        'time': f"{slot_1} - {slot_2}",  # Combine two 1.5-hour slots into a 3-hour block
+                        'room': room
+                    })
+                    break  # Once scheduled on one day, stop
             break  # Stop after assigning on one day
-
 
 # Function to add a room
 def add_room(room_name, room_type):
