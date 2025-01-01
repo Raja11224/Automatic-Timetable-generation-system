@@ -178,7 +178,7 @@ with st.form(key='add_room_form'):
     room_name = st.text_input("Room Name")
     room_type = st.selectbox("Room Type", ["Theory", "Lab"])
     add_room_button = st.form_submit_button(label="Add Room")
-    
+
     if add_room_button:
         if room_name and room_type:
             st.session_state.rooms.append({"name": room_name, "type": room_type})
@@ -186,20 +186,20 @@ with st.form(key='add_room_form'):
         else:
             st.error("Please fill in all fields.")
 
-# Display Rooms
+# Display Added Rooms
 if st.session_state.rooms:
-    st.subheader("Available Rooms:")
+    st.subheader("Added Rooms:")
     rooms_df = pd.DataFrame(st.session_state.rooms)
     st.dataframe(rooms_df)
 
-# Generate Timetable
-if st.button("Generate Timetable"):
-    if not st.session_state.generated:  # Only generate timetable if it hasn't been generated already
+# Button to Generate Timetable
+if not st.session_state.generated:
+    if st.button("Generate Timetable"):
         # Schedule all courses
         for course in st.session_state.courses:
             schedule_course(course['course_code'], course['course_title'], course['section'], course['room_type'], course['slot_preference'])
         
-        # Show generated timetable
+        # Get and display the timetable
         timetable_data = get_timetable()
         timetable_df = pd.DataFrame(timetable_data)
         st.dataframe(timetable_df)
