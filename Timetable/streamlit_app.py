@@ -111,12 +111,12 @@ def allocate_theory_course(course_code, course_title, section, room_type):
         for day in available_days:
             # Check for 1.5-hour time slot availability
             for i in range(len(available_time_slots)):
-                slot = available_time_slots[i]
+                slot_1 = available_time_slots[i]
 
-                # If the slot is available, assign the 1.5-hour block
-                if not any(session['room'] == room and session['time'] == slot for session in st.session_state.timetable[day].get(course_code, [])):
+                # If the time slot is available, assign the 1.5-hour block
+                if not any(session['room'] == room and session['time'] == f"{slot_1}" for session in st.session_state.timetable[day].get(course_code, [])):
                     st.session_state.timetable[day][course_code].append({
-                        'time': slot,
+                        'time': slot_1,
                         'room': room
                     })
                     break  # Once scheduled on one day, stop
@@ -125,7 +125,7 @@ def allocate_theory_course(course_code, course_title, section, room_type):
 # Function to schedule a course (Theory or Lab)
 def schedule_course(course_code, course_title, section, room_type, slot_preference):
     # Check if the course has already been scheduled
-    if any(course_code in st.session_state.timetable[day] for day in days_of_week):
+    if course_code in st.session_state.timetable:
         st.warning(f"Course {course_code} is already scheduled. Skipping allocation.")
         return
 
@@ -135,33 +135,20 @@ def schedule_course(course_code, course_title, section, room_type, slot_preferen
     elif room_type == "Lab" and slot_preference == "3 Hour consecutive block":
         allocate_lab_course(course_code, course_title, section, room_type)
 
-# Room Management Functions
-def add_room(room_name, room_type):
-    if not any(room["name"] == room_name for room in st.session_state.rooms):
-        st.session_state.rooms.append({"name": room_name, "type": room_type})
-        st.success(f"Room {room_name} added successfully!")
-    else:
-        st.warning(f"Room {room_name} already exists.")
+# Streamlit User Interface
 
-def delete_room(room_name):
-    if any(room["name"] == room_name for room in st.session_state.rooms):
-        st.session_state.rooms = [room for room in st.session_state.rooms if room["name"] != room_name]
-        st.success(f"Room {room_name} deleted successfully!")
-    else:
-        st.warning(f"Room {room_name} does not exist.")
-
-# Set the app's title
 st.title("Timetable Generator")
 
-# Add Course Section
-st.header("Add Course")
+# Section to add a new course
+st.header("Add a New Course")
 
 with st.form(key='add_course_form'):
-    course_code = st.text_input("Course Code (e.g., CS101)")
-    course_title = st.text_input("Course Title (e.g., Computer Science 101)")
-    section = st.text_input("Section (e.g., A)")
+    course_code = st.text_input("Course Code")
+    course_title = st.text_input("Course Title")
+    section = st.text_input("Section")
     room_type = st.selectbox("Room Type", ["Theory", "Lab"])
     slot_preference = st.selectbox("Slot Preference", ["1.5 Hour blocks", "3 Hour consecutive block"])
+    
     add_course_button = st.form_submit_button(label="Add Course")
     
     if add_course_button:
@@ -169,26 +156,24 @@ with st.form(key='add_course_form'):
             add_course(course_code, course_title, section, room_type, slot_preference)
             st.success(f"Course {course_code} added successfully!")
         else:
-            st.error("Please provide all course details.")
+            st.error("Please fill in all fields.")
 
-# Displaying Added Courses
-st.subheader("Added Courses")
+# Display Added Courses
 if st.session_state.courses:
-    courses_data = [{
+    st.subheader("Added Courses:")
+    courses_df = pd.DataFrame([{
         'Course Code': course['course_code'],
         'Course Title': course['course_title'],
         'Section': course['section'],
         'Room Type': course['room_type'],
-        'Slot Preference': course['slot_preference']
-    } for course in st.session_state.courses]
-    
-    courses_df = pd.DataFrame(courses_data)
+        'Slot Preference': course['slot_preference'],
+    } for course in st.session_state.courses])
     st.dataframe(courses_df)
 
 # Room Management Section
 st.header("Room Management")
 
-# Form to add a room
+# Add Room Form
 with st.form(key='add_room_form'):
     room_name = st.text_input("Room Name (e.g., Room 6)")
     room_type = st.selectbox("Room Type", ["Theory", "Lab"])
@@ -196,40 +181,36 @@ with st.form(key='add_room_form'):
     
     if add_room_button:
         if room_name:
-            add_room(room_name, room_type)
+            st.session_state.rooms.append({"name": room_name, "type": room_type})
+            st.success(f"Room {room_name} added successfully!")
         else:
             st.error("Please provide a room name.")
 
-# Form to delete a room
-with st.form(key='delete_room_form'):
-    room_to_delete = st.selectbox("Select Room to Delete", [room['name'] for room in st.session_state.rooms])
-    delete_room_button = st.form_submit_button(label="Delete Room")
-    
-    if delete_room_button:
-        delete_room(room_to_delete)
-
-# Generate Timetable Section
-st.header("Generate Timetable")
-
-if st.button("Generate Timetable"):
-    if st.session_state.courses:
-        for course in st.session_state.courses:
-            schedule_course(course['course_code'], course['course_title'], course['section'], course['room_type'], course['slot_preference'])
-        st.session_state.generated = True
-        st.success("Timetable generated successfully!")
-    else:
-        st.error("Please add some courses before generating the timetable.")
-
-# Update Timetable Section
-if st.session_state.generated and not st.session_state.locked:
-    st.header("Update Timetable")
-    if st.button("Update Timetable"):
-        # Schedule only those courses that have not been scheduled already
+# Section to generate timetable
+if not st.session_state.locked:
+    if st.button("Generate Timetable"):
         for course in st.session_state.courses:
             schedule_course(course['course_code'], course['course_title'], course['section'], course['room_type'], course['slot_preference'])
         
-        # Get the updated timetable and display it
+        st.session_state.generated = True
+        st.session_state.locked = True  # Lock timetable after generation
+        st.success("Timetable generated successfully!")
+
+# Display Generated Timetable
+if st.session_state.generated:
+    timetable_data = get_timetable()
+    timetable_df = pd.DataFrame(timetable_data)
+    st.subheader("Generated Timetable")
+    st.dataframe(timetable_df)
+
+    # Section to update timetable (only allowed after generation and locked)
+    if st.button("Update Timetable"):
+        # Schedule only those courses that have not been scheduled already
+        for course in st.session_state.courses:
+            # Ensure the course is scheduled if not already done
+            schedule_course(course['course_code'], course['course_title'], course['section'], course['room_type'], course['slot_preference'])
+        
         timetable_data = get_timetable()
-        df = pd.DataFrame(timetable_data)
-        st.dataframe(df)
+        timetable_df = pd.DataFrame(timetable_data)
+        st.dataframe(timetable_df)
         st.success("Timetable updated successfully!")
