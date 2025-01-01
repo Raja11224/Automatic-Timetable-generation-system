@@ -79,12 +79,12 @@ def delete_room(room_name):
 
 # Function to schedule courses based on slot preference
 def schedule_course(course_code, course_title, section, room_type, slot_preference):
-    if slot_preference == "1.5 Hour slots":
-        # Allocate 2 1.5-hour slots on separate days
-        allocate_1_5_hour_slots(course_code, course_title, section, room_type)
-    elif slot_preference == "3 Hour consecutive slot":
-        # Allocate 1 3-hour consecutive slot
+    if room_type == "Lab":
+        # Allocate a 3-hour consecutive slot for Lab courses on one day
         allocate_3_hour_consecutive_slot(course_code, course_title, section, room_type)
+    elif room_type == "Theory":
+        # Allocate two 1.5-hour slots on different days for Theory courses
+        allocate_1_5_hour_slots(course_code, course_title, section, room_type)
 
 # Helper function to get available room
 def get_available_room(room_type):
@@ -101,7 +101,7 @@ def get_available_room(room_type):
         st.warning(f"No available rooms for {room_type} type.")
         return None
 
-# Function to allocate 1.5 hour slots on two different days
+# Function to allocate 1.5 hour slots on two different days for Theory courses
 def allocate_1_5_hour_slots(course_code, course_title, section, room_type):
     room = get_available_room(room_type)
     if room:
@@ -109,15 +109,15 @@ def allocate_1_5_hour_slots(course_code, course_title, section, room_type):
         # Randomly pick two different days for 1.5-hour slots
         day1, day2 = random.sample(available_days, 2)
 
-        # Assign 1.5-hour slots on each day
+        # Randomly select 1.5-hour time slots for each day
         time_slot_1 = random.choice(available_time_slots)
         time_slot_2 = random.choice(available_time_slots)
 
-        # Assign the slots
+        # Assign the slots to the selected days
         st.session_state.timetable[day1][course_code].append({'time': time_slot_1, 'room': room})
         st.session_state.timetable[day2][course_code].append({'time': time_slot_2, 'room': room})
 
-# Function to allocate a 3-hour consecutive slot
+# Function to allocate a 3-hour consecutive slot for Lab courses on one day
 def allocate_3_hour_consecutive_slot(course_code, course_title, section, room_type):
     room = get_available_room(room_type)
     if room:
