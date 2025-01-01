@@ -92,22 +92,24 @@ def allocate_theory_course(course_code, course_title, section, room_type):
 def allocate_lab_course(course_code, course_title, section, room_type):
     room = get_available_room(room_type)
     if room:
-        # Choose a day and check for a 3-hour consecutive slot
+        # Choose a random day for the lab (only one day)
         available_days = days_of_week.copy()
+        random.shuffle(available_days)  # Shuffle days to get a random choice
+        
         for day in available_days:
             for i in range(len(available_time_slots) - 2):  # Check if 3 consecutive slots are available
+                # Get 3 consecutive time slots
                 slot_1 = available_time_slots[i]
                 slot_2 = available_time_slots[i + 1]
                 slot_3 = available_time_slots[i + 2]
 
-                # If these slots are free on this day, assign the 3-hour slot
+                # Assign the 3-hour block to this day
                 st.session_state.timetable[day][course_code].append({
-                    'time': f"{slot_1} - {slot_3}",
+                    'time': f"{slot_1} - {slot_3}",  # Combine the 3 consecutive slots into one 3-hour block
                     'room': room
                 })
-                break
-            else:
-                continue
+                break  # Stop after scheduling on one day
+
 
 # Function to add a room
 def add_room(room_name, room_type):
