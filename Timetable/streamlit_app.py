@@ -1,7 +1,7 @@
 import streamlit as st
-from collections import defaultdict
 import random
 import pandas as pd
+from collections import defaultdict
 
 # Initialize session state for courses, timetable, etc.
 if 'courses' not in st.session_state:
@@ -17,7 +17,13 @@ if 'timetable' not in st.session_state:
     st.session_state.timetable = defaultdict(lambda: defaultdict(list))
 
 if 'rooms' not in st.session_state:
-    st.session_state.rooms = []
+    st.session_state.rooms = [
+        {"name": "Room 1", "type": "Theory"},
+        {"name": "Room 2", "type": "Theory"},
+        {"name": "Room 3", "type": "Theory"},
+        {"name": "Room 4", "type": "Lab"},
+        {"name": "Room 5", "type": "Lab"}
+    ]
 
 # Sample days of the week and time slots
 days_of_week = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
@@ -68,19 +74,19 @@ def get_available_room(room_type):
 
 # Function to schedule courses
 def schedule_course(course_code, course_title, section, room_type, slot_preference):
-    if slot_preference == "1.5 Hour slots":
-        # Allocate 1.5-hour slots on two different days
+    if slot_preference == "1.5 Hour blocks":
+        # Allocate 1.5-hour slots on two different days (Theory)
         allocate_theory_course(course_code, course_title, section, room_type)
-    elif slot_preference == "3 Hour consecutive slot":
-        # Allocate 3-hour consecutive slot
+    elif slot_preference == "3 Hour consecutive block":
+        # Allocate 3-hour consecutive block (Lab)
         allocate_lab_course(course_code, course_title, section, room_type)
 
 # Function to allocate 1.5-hour slots on two different days (Theory)
 def allocate_theory_course(course_code, course_title, section, room_type):
     room = get_available_room(room_type)
     if room:
-        available_days = days_of_week.copy()  # Available days for assignment
-        # Randomly pick two different days for 1.5-hour slots
+        # Randomly pick two different days for 1.5-hour blocks
+        available_days = days_of_week.copy()
         day1, day2 = random.sample(available_days, 2)
 
         # Randomly pick 1.5-hour time slots for both days
@@ -91,10 +97,11 @@ def allocate_theory_course(course_code, course_title, section, room_type):
         st.session_state.timetable[day1][course_code].append({'time': time_slot_1, 'room': room})
         st.session_state.timetable[day2][course_code].append({'time': time_slot_2, 'room': room})
 
-# Function to allocate a 3-hour consecutive slot (Lab)
+# Function to allocate a 3-hour consecutive block (Lab)
 def allocate_lab_course(course_code, course_title, section, room_type):
     room = get_available_room(room_type)
     if room:
+        # Choose a day and check for a 3-hour consecutive slot
         available_days = days_of_week.copy()
         for day in available_days:
             for i in range(len(available_time_slots) - 2):  # Check if 3 consecutive slots are available
@@ -122,7 +129,7 @@ with st.form(key='add_course_form'):
     course_title = st.text_input("Course Title")
     section = st.text_input("Section")
     room_type = st.selectbox("Room Type", ["Theory", "Lab"])
-    slot_preference = st.selectbox("Slot Preference", ["1.5 Hour slots", "3 Hour consecutive slot"])
+    slot_preference = st.selectbox("Slot Preference", ["1.5 Hour blocks", "3 Hour consecutive block"])
     
     add_course_button = st.form_submit_button(label="Add Course")
     
