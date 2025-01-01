@@ -177,3 +177,46 @@ if st.session_state.generated and st.session_state.locked:
         st.dataframe(df)
         st.session_state.locked = True  # Keep the timetable locked
         st.success("Timetable updated successfully!")
+
+# --- Room Management Section ---
+st.header("Room Manager")
+
+# Display current rooms
+st.subheader("Current Rooms")
+rooms_df = pd.DataFrame(st.session_state.rooms)
+st.dataframe(rooms_df)
+
+# Add new room
+with st.form(key='add_room_form'):
+    new_room_name = st.text_input("New Room Name")
+    room_type = st.selectbox("Room Type", ["Theory", "Lab"])
+    add_room_button = st.form_submit_button(label="Add Room")
+    
+    if add_room_button:
+        if new_room_name:
+            st.session_state.rooms.append({"name": new_room_name, "type": room_type})
+            st.success(f"Room '{new_room_name}' added successfully!")
+        else:
+            st.error("Please provide a room name.")
+
+# Delete a room
+st.subheader("Delete a Room")
+room_to_delete = st.selectbox("Select Room to Delete", [room["name"] for room in st.session_state.rooms])
+delete_room_button = st.button("Delete Room")
+
+if delete_room_button and room_to_delete:
+    st.session_state.rooms = [room for room in st.session_state.rooms if room["name"] != room_to_delete]
+    st.success(f"Room '{room_to_delete}' deleted successfully!")
+
+# Update room information
+st.subheader("Update Room Info")
+room_to_update = st.selectbox("Select Room to Update", [room["name"] for room in st.session_state.rooms])
+new_room_type = st.selectbox("New Room Type", ["Theory", "Lab"])
+update_room_button = st.button("Update Room")
+
+if update_room_button and room_to_update:
+    for room in st.session_state.rooms:
+        if room["name"] == room_to_update:
+            room["type"] = new_room_type
+            st.success(f"Room '{room_to_update}' updated successfully to '{new_room_type}'!")
+            break
