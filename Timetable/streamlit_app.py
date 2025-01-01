@@ -182,9 +182,9 @@ with st.form(key='add_room_form'):
         else:
             st.error("Please fill in all fields.")
 
-# Display Added Rooms
+# Display Rooms
 if st.session_state.rooms:
-    st.subheader("Added Rooms:")
+    st.subheader("Available Rooms:")
     rooms_df = pd.DataFrame(st.session_state.rooms)
     st.dataframe(rooms_df)
 
