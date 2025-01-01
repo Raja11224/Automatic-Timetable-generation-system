@@ -29,7 +29,7 @@ if 'course_title' not in st.session_state:
 if 'section' not in st.session_state:
     st.session_state.section = ""
 
-# Sample days of the week
+# Sample days of the week and available time slots
 days_of_week = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 available_time_slots = ["8:00 - 9:30", "9:30 - 11:00", "11:00 - 12:30", "12:30 - 2:00", "2:00 - 3:30", "3:30 - 5:00", "5:00 - 6:30"]
 
@@ -109,7 +109,7 @@ def allocate_1_5_hour_slots(course_code, course_title, section, room_type):
         # Randomly pick two different days for 1.5-hour slots
         day1, day2 = random.sample(available_days, 2)
 
-        # Assign 1.5-hour slots on each day
+        # Ensure the timeslot doesn't overlap with existing courses
         time_slot_1 = random.choice(available_time_slots)
         time_slot_2 = random.choice(available_time_slots)
 
