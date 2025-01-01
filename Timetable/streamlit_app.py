@@ -105,8 +105,9 @@ def get_available_room(room_type):
 def allocate_1_5_hour_slots(course_code, course_title, section, room_type):
     room = get_available_room(room_type)
     if room:
-        # Randomly pick the first day for the first 1.5-hour block
         available_days = days_of_week.copy()
+
+        # Randomly pick the first day for the first 1.5-hour block
         first_day = random.choice(available_days)
         available_days.remove(first_day)  # Remove the selected first day for the second block
 
@@ -116,6 +117,13 @@ def allocate_1_5_hour_slots(course_code, course_title, section, room_type):
         # Randomly select 1.5-hour time slots for each day
         time_slot_1 = random.choice(available_time_slots)
         time_slot_2 = random.choice(available_time_slots)
+
+        # Check if time slots are already occupied for the selected days
+        while any(session['time'] == time_slot_1 for session in st.session_state.timetable[first_day].get(course_code, [])):
+            time_slot_1 = random.choice(available_time_slots)  # Re-select slot if conflict
+
+        while any(session['time'] == time_slot_2 for session in st.session_state.timetable[second_day].get(course_code, [])):
+            time_slot_2 = random.choice(available_time_slots)  # Re-select slot if conflict
 
         # Assign the slots to the selected days
         st.session_state.timetable[first_day][course_code].append({'time': time_slot_1, 'room': room})
