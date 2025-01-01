@@ -110,6 +110,24 @@ def allocate_3_hour_consecutive_slot(course_code, course_title, section, room_ty
 def is_course_scheduled(course_code, day):
     return course_code in st.session_state.timetable[day]
 
+# Function to get timetable data
+def get_timetable():
+    timetable_data = []
+    for course in st.session_state.courses:
+        course_times = {'Course Code': course['course_code'],
+                        'Course Title': course['course_title'],
+                        'Section': course['section']}
+        
+        # For each day of the week, check if this course has a scheduled time on that day
+        for day in days_of_week:
+            day_schedule = []
+            for session in st.session_state.timetable[day].get(course['course_code'], []):
+                day_schedule.append(f"{session['time']} (Room: {session['room']})")
+            course_times[day] = ", ".join(day_schedule) if day_schedule else "Not scheduled"
+        
+        timetable_data.append(course_times)
+    return timetable_data
+
 # Section to add a new course
 st.title("Course Timetable Generator")
 
@@ -169,7 +187,7 @@ if not st.session_state.locked:
         for course in st.session_state.courses:
             schedule_course(course['course_code'], course['course_title'], course['section'], course['room_type'], course['slot_preference'])
 
-        timetable_data = get_timetable()
+        timetable_data = get_timetable()  # Call the get_timetable function here
         df = pd.DataFrame(timetable_data)
         st.dataframe(df)
         st.session_state.generated = True
@@ -184,7 +202,7 @@ if st.session_state.generated and st.session_state.locked:
         for course in st.session_state.courses:
             schedule_course(course['course_code'], course['course_title'], course['section'], course['room_type'], course['slot_preference'])
 
-        timetable_data = get_timetable()
+        timetable_data = get_timetable()  # Call the get_timetable function here
         df = pd.DataFrame(timetable_data)
         st.dataframe(df)
         st.session_state.locked = True  # Keep the timetable locked
