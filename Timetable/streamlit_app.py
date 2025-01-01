@@ -19,16 +19,6 @@ if 'timetable' not in st.session_state:
 if 'rooms' not in st.session_state:
     st.session_state.rooms = []
 
-# Initialize the course-related state variables to None or empty strings
-if 'course_code' not in st.session_state:
-    st.session_state.course_code = ""
-
-if 'course_title' not in st.session_state:
-    st.session_state.course_title = ""
-
-if 'section' not in st.session_state:
-    st.session_state.section = ""
-
 # Sample days of the week
 days_of_week = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 available_time_slots = ["8:00 - 9:30", "9:30 - 11:00", "11:00 - 12:30", "12:30 - 2:00", "2:00 - 3:30", "3:30 - 5:00", "5:00 - 6:30"]
@@ -105,36 +95,42 @@ def get_available_room(room_type):
 def allocate_1_5_hour_slots(course_code, course_title, section, room_type):
     room = get_available_room(room_type)
     if room:
-        available_days = days_of_week.copy()  # Available days for assignment
-        # Randomly pick two different days for 1.5-hour slots
-        day1, day2 = random.sample(available_days, 2)
+        # Randomly pick the first day for the first 1.5-hour block
+        available_days = days_of_week.copy()
+        first_day = random.choice(available_days)
+        available_days.remove(first_day)  # Remove the selected first day for the second block
+
+        # Randomly select the second day for the remaining 1.5-hour block
+        second_day = random.choice(available_days)
 
         # Randomly select 1.5-hour time slots for each day
         time_slot_1 = random.choice(available_time_slots)
         time_slot_2 = random.choice(available_time_slots)
 
         # Assign the slots to the selected days
-        st.session_state.timetable[day1][course_code].append({'time': time_slot_1, 'room': room})
-        st.session_state.timetable[day2][course_code].append({'time': time_slot_2, 'room': room})
+        st.session_state.timetable[first_day][course_code].append({'time': time_slot_1, 'room': room})
+        st.session_state.timetable[second_day][course_code].append({'time': time_slot_2, 'room': room})
 
 # Function to allocate a 3-hour consecutive slot for Lab courses on one day
 def allocate_3_hour_consecutive_slot(course_code, course_title, section, room_type):
     room = get_available_room(room_type)
     if room:
-        # Try to assign a 3-hour consecutive slot on any available day
         available_days = days_of_week.copy()
         for day in available_days:
+            # Check if there's an available 3-hour consecutive slot on the day
             for i in range(len(available_time_slots) - 2):  # Check if 3 consecutive slots are available
                 slot_1 = available_time_slots[i]
                 slot_2 = available_time_slots[i + 1]
                 slot_3 = available_time_slots[i + 2]
 
                 # If these slots are free on this day, assign the 3-hour slot
-                st.session_state.timetable[day][course_code].append({
-                    'time': f"{slot_1} - {slot_3}",
-                    'room': room
-                })
-                break
+                if not any(session['time'] == f"{slot_1} - {slot_3}" for session in st.session_state.timetable[day].get(course_code, [])):
+                    st.session_state.timetable[day][course_code].append({
+                        'time': f"{slot_1} - {slot_3}",
+                        'room': room
+                    })
+                    return  # Lab is scheduled, no need to schedule again
+            # If a lab is scheduled, break out
             else:
                 continue
 
@@ -204,18 +200,3 @@ if not st.session_state.locked:
         st.dataframe(df)
         st.session_state.generated = True
         st.session_state.locked = True  # Lock timetable after generation
-        st.success("Timetable generated successfully!")
-
-# Section to update timetable (only allowed after generation and locked)
-if st.session_state.generated and st.session_state.locked:
-    st.header("Update Timetable")
-    if st.button("Update Timetable"):
-        # Schedule any newly added courses or updated preferences
-        for course in st.session_state.courses:
-            schedule_course(course['course_code'], course['course_title'], course['section'], course['room_type'], course['slot_preference'])
-
-        timetable_data = get_timetable()
-        df = pd.DataFrame(timetable_data)
-        st.dataframe(df)
-        st.session_state.locked = True  # Keep the timetable locked
-        st.success("Timetable updated successfully!")
