@@ -212,8 +212,5 @@ if st.session_state.generated and st.session_state.locked:
         timetable_df = pd.DataFrame(timetable_data)
         st.dataframe(timetable_df)
         st.success("Timetable updated successfully!")
-# Prevent updating timetable once it's generated
-if st.session_state.generated:
-    st.warning("The timetable has already been generated. To make changes, please click 'Update Timetable'.")
-    return
+
 
