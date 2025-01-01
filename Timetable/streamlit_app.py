@@ -77,8 +77,17 @@ def add_room(room_name, room_type):
 def delete_room(room_name):
     st.session_state.rooms = [room for room in st.session_state.rooms if room['name'] != room_name]
 
+# Function to check if a course has already been scheduled on a given day
+def is_course_scheduled(course_code, day):
+    return course_code in st.session_state.timetable[day]
+
 # Function to schedule courses based on slot preference
 def schedule_course(course_code, course_title, section, room_type, slot_preference):
+    # If the course is already scheduled for some days, we should not reschedule it
+    for day in days_of_week:
+        if is_course_scheduled(course_code, day):
+            return  # Skip scheduling if it's already scheduled for this day
+    
     if slot_preference == "1.5 Hour slots":
         # Allocate 2 1.5-hour slots on separate days
         allocate_1_5_hour_slots(course_code, course_title, section, room_type)
@@ -113,9 +122,10 @@ def allocate_1_5_hour_slots(course_code, course_title, section, room_type):
         time_slot_1 = random.choice(available_time_slots)
         time_slot_2 = random.choice(available_time_slots)
 
-        # Assign the slots
-        st.session_state.timetable[day1][course_code].append({'time': time_slot_1, 'room': room})
-        st.session_state.timetable[day2][course_code].append({'time': time_slot_2, 'room': room})
+        # Assign the slots only if the course is not already scheduled for these days
+        if not is_course_scheduled(course_code, day1) and not is_course_scheduled(course_code, day2):
+            st.session_state.timetable[day1][course_code].append({'time': time_slot_1, 'room': room})
+            st.session_state.timetable[day2][course_code].append({'time': time_slot_2, 'room': room})
 
 # Function to allocate a 3-hour consecutive slot
 def allocate_3_hour_consecutive_slot(course_code, course_title, section, room_type):
@@ -130,13 +140,12 @@ def allocate_3_hour_consecutive_slot(course_code, course_title, section, room_ty
                 slot_3 = available_time_slots[i + 2]
 
                 # If these slots are free on this day, assign the 3-hour slot
-                st.session_state.timetable[day][course_code].append({
-                    'time': f"{slot_1} - {slot_3}",
-                    'room': room
-                })
-                break
-            else:
-                continue
+                if not is_course_scheduled(course_code, day):
+                    st.session_state.timetable[day][course_code].append({
+                        'time': f"{slot_1} - {slot_3}",
+                        'room': room
+                    })
+                    break
 
 # Streamlit User Interface
 st.title("Course Timetable Generator")
