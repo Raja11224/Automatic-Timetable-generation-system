@@ -3,7 +3,7 @@ from collections import defaultdict
 import random
 import pandas as pd
 
-# Initialize session state for courses, timetable, etc.
+# Initialize session state for courses, timetable, rooms, etc.
 if 'courses' not in st.session_state:
     st.session_state.courses = []
 
@@ -19,7 +19,7 @@ if 'timetable' not in st.session_state:
 if 'rooms' not in st.session_state:
     st.session_state.rooms = []
 
-# Initialize course-related state variables to empty strings if they do not exist
+# Initialize course-related state variables
 if 'course_code' not in st.session_state:
     st.session_state.course_code = ""
 
@@ -165,6 +165,30 @@ with st.form(key='add_course_form'):
         else:
             st.error("Please fill in all fields.")
 
+# Section to manage rooms (Add and Delete rooms)
+st.header("Manage Rooms")
+
+# Add Room Section
+with st.form(key="add_room_form"):
+    room_name = st.text_input("Room Name")
+    room_type = st.selectbox("Room Type", ["Theory", "Lab"])
+    
+    add_room_button = st.form_submit_button(label="Add Room")
+    
+    if add_room_button:
+        if room_name:
+            add_room(room_name, room_type)
+            st.success(f"Room {room_name} added successfully!")
+        else:
+            st.error("Please provide a room name.")
+
+# Delete Room Section
+room_to_delete = st.selectbox("Select Room to Delete", st.session_state.rooms, format_func=lambda room: room['name'])
+delete_room_button = st.button("Delete Room")
+if delete_room_button:
+    delete_room(room_to_delete)
+    st.success(f"Room {room_to_delete} deleted successfully!")
+
 # Section to generate timetable
 if not st.session_state.locked:
     if st.button("Generate Timetable"):
@@ -177,3 +201,23 @@ if not st.session_state.locked:
         st.session_state.generated = True
         st.session_state.locked = True  # Lock timetable after generation
         st.success("Timetable generated successfully!")
+
+# Section to update timetable (only allowed after generation and locked)
+if st.session_state.generated and st.session_state.locked:
+    st.header("Update Timetable")
+    if st.button("Update Timetable"):
+        # Schedule any newly added courses or updated preferences
+        for course in st.session_state.courses:
+            schedule_course(course['course_code'], course['course_title'], course['section'], course['room_type'], course['slot_preference'])
+
+        timetable_data = get_timetable()
+        df = pd.DataFrame(timetable_data)
+        st.dataframe(df)
+        st.session_state.locked = True  # Keep the timetable locked
+        st.success("Timetable updated successfully!")
+
+# Display added courses
+if st.session_state.courses:
+    st.header("Added Courses")
+    courses_df = pd.DataFrame(get_courses())
+    st.dataframe(courses_df)
