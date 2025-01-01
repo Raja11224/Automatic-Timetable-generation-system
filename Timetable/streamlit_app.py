@@ -123,6 +123,13 @@ def delete_room(room_name):
         st.session_state.rooms = rooms
         st.success(f"Room {room_name} deleted successfully!")
 
+# Function to schedule a course (Theory or Lab)
+def schedule_course(course_code, course_title, section, room_type, slot_preference):
+    if room_type == "Theory" and slot_preference == "1.5 Hour blocks":
+        allocate_theory_course(course_code, course_title, section, room_type)
+    elif room_type == "Lab" and slot_preference == "3 Hour consecutive block":
+        allocate_lab_course(course_code, course_title, section, room_type)
+
 # Streamlit User Interface
 st.title("Course Timetable Generator")
 
@@ -203,6 +210,4 @@ if st.session_state.generated and st.session_state.locked:
         timetable_data = get_timetable()
         df = pd.DataFrame(timetable_data)
         st.dataframe(df)
-        st.session_state.locked = True  # Keep the timetable locked
         st.success("Timetable updated successfully!")
-
