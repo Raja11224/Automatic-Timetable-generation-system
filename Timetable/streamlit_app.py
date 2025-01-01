@@ -3,7 +3,7 @@ import random
 import pandas as pd
 from collections import defaultdict
 
-# Initialize session state for courses, timetable, etc.
+# Initialize session state for courses, timetable, rooms, etc.
 if 'courses' not in st.session_state:
     st.session_state.courses = []
 
@@ -72,15 +72,6 @@ def get_available_room(room_type):
         st.warning(f"No available rooms for {room_type} type.")
         return None
 
-# Function to schedule courses
-def schedule_course(course_code, course_title, section, room_type, slot_preference):
-    if slot_preference == "1.5 Hour blocks":
-        # Allocate 1.5-hour slots on two different days (Theory)
-        allocate_theory_course(course_code, course_title, section, room_type)
-    elif slot_preference == "3 Hour consecutive block":
-        # Allocate 3-hour consecutive block (Lab)
-        allocate_lab_course(course_code, course_title, section, room_type)
-
 # Function to allocate 1.5-hour slots on two different days (Theory)
 def allocate_theory_course(course_code, course_title, section, room_type):
     room = get_available_room(room_type)
@@ -118,6 +109,20 @@ def allocate_lab_course(course_code, course_title, section, room_type):
             else:
                 continue
 
+# Function to add a room
+def add_room(room_name, room_type):
+    st.session_state.rooms.append({"name": room_name, "type": room_type})
+    st.success(f"Room {room_name} added successfully!")
+
+# Function to delete a room
+def delete_room(room_name):
+    rooms = [room for room in st.session_state.rooms if room['name'] != room_name]
+    if len(rooms) == len(st.session_state.rooms):
+        st.warning(f"Room {room_name} not found!")
+    else:
+        st.session_state.rooms = rooms
+        st.success(f"Room {room_name} deleted successfully!")
+
 # Streamlit User Interface
 st.title("Course Timetable Generator")
 
@@ -151,6 +156,29 @@ if st.session_state.courses:
         'Slot Preference': course['slot_preference'],
     } for course in st.session_state.courses])
     st.dataframe(courses_df)
+
+# Room Management Section
+st.header("Room Management")
+
+# Add Room Form
+with st.form(key='add_room_form'):
+    room_name = st.text_input("Room Name (e.g., Room 6)")
+    room_type = st.selectbox("Room Type", ["Theory", "Lab"])
+    add_room_button = st.form_submit_button(label="Add Room")
+    
+    if add_room_button:
+        if room_name:
+            add_room(room_name, room_type)
+        else:
+            st.error("Please provide a room name.")
+
+# Delete Room Form
+with st.form(key='delete_room_form'):
+    room_to_delete = st.selectbox("Select Room to Delete", [room["name"] for room in st.session_state.rooms])
+    delete_room_button = st.form_submit_button(label="Delete Room")
+    
+    if delete_room_button:
+        delete_room(room_to_delete)
 
 # Section to generate timetable
 if not st.session_state.locked:
