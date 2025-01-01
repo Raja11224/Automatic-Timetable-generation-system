@@ -131,8 +131,8 @@ st.header("Add Course")
 course_code = st.text_input("Course Code")
 course_title = st.text_input("Course Title")
 section = st.text_input("Section")
-room_type = st.selectbox("Room Type", ["Theory", "Lab"])
-slot_preference = st.selectbox("Slot Preference", ["1.5 Hour blocks", "3 Hour consecutive block"])
+room_type = st.selectbox("Room Type", ["Theory", "Lab"], key="room_type_selectbox")
+slot_preference = st.selectbox("Slot Preference", ["1.5 Hour blocks", "3 Hour consecutive block"], key="slot_preference_selectbox")
 
 if st.button("Add Course"):
     if course_code and course_title and section:
@@ -178,8 +178,8 @@ if st.session_state.generated:
 # Room Management: Add new rooms (Only if Timetable is not generated)
 if not st.session_state.generated:
     st.header("Room Management")
-    new_room_name = st.text_input("Room Name")
-    new_room_type = st.selectbox("Room Type", ["Theory", "Lab"])
+    new_room_name = st.text_input("Room Name", key="new_room_name_input")
+    new_room_type = st.selectbox("Room Type", ["Theory", "Lab"], key="new_room_type_selectbox")
 
     if st.button("Add Room"):
         if new_room_name:
@@ -189,9 +189,8 @@ if not st.session_state.generated:
             st.warning("Please provide a room name.")
 
 # Option to delete courses
-if st.session_state.courses:
-    if st.button("Delete All Courses"):
-        st.session_state.courses = []
-        st.session_state.timetable = defaultdict(lambda: defaultdict(list))
-        st.session_state.generated = False
-        st.success("All courses and timetable have been deleted.")
+if st.button("Clear All Courses"):
+    st.session_state.courses = []
+    st.session_state.timetable = defaultdict(lambda: defaultdict(list))
+    st.session_state.generated = False
+    st.success("All courses and timetable have been deleted.")
