@@ -118,6 +118,7 @@ def allocate_lab_course(course_code, course_title, section, room_type):
             break  # Break out of the loop once we successfully assign the course on a day
 
 
+
 # Function to add a room
 def add_room(room_name, room_type):
     st.session_state.rooms.append({"name": room_name, "type": room_type})
