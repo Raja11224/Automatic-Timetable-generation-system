@@ -63,7 +63,7 @@ def get_available_room(room_type):
         st.warning(f"No available rooms for {room_type} type.")
         return None
 
-# Function to check if room is already occupied at the given time
+# Function to check if room is available at the given time
 def is_room_available(day, time_slot, room, course_code):
     # Check if any session for this course is scheduled at the same time in the same room
     for other_course_code in st.session_state.timetable[day]:
@@ -79,13 +79,7 @@ def allocate_lab_course(course_code, course_title, section, room_type):
     if room:
         # Choose a random day for the lab (only one day)
         available_days = days_of_week.copy()
-        scheduled = any(course_code in st.session_state.timetable[day] for day in available_days)
-
-        # Don't schedule if it's already in the timetable
-        if scheduled:
-            return  # Skip allocation if already scheduled (no warning shown)
-        
-        random.shuffle(available_days)  # Shuffle days to get a random choice
+        random.shuffle(available_days)
 
         # Iterate over the shuffled days and try to assign the lab to one day
         for day in available_days:
@@ -100,8 +94,8 @@ def allocate_lab_course(course_code, course_title, section, room_type):
                         'time': f"{slot_1} - {slot_2}",
                         'room': room
                     })
-                    break  # Once scheduled on one day, stop
-            break  # Stop after assigning on one day
+                    break  # Once scheduled, stop and break
+            break  # Once scheduled, stop after assigning to one day
 
 # Function to allocate Theory course (1.5-hour blocks on two different days)
 def allocate_theory_course(course_code, course_title, section, room_type):
@@ -109,13 +103,7 @@ def allocate_theory_course(course_code, course_title, section, room_type):
     if room:
         # Choose random days for the theory course (two different days)
         available_days = days_of_week.copy()
-        scheduled = any(course_code in st.session_state.timetable[day] for day in available_days)
-
-        # Don't schedule if it's already in the timetable
-        if scheduled:
-            return  # Skip allocation if already scheduled (no warning shown)
-        
-        random.shuffle(available_days)  # Shuffle days to get a random choice
+        random.shuffle(available_days)
 
         # Iterate over the shuffled days and try to assign the theory to two days
         assigned_slots = 0
