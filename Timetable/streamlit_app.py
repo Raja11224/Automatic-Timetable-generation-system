@@ -50,12 +50,9 @@ def add_course(course_code, course_title, section, room_type, slot_preference):
         'slot_preference': slot_preference
     })
 
-# Function to get available room
+# Function to get available room of a specific type
 def get_available_room(room_type):
-    available_rooms = []
-    for room in st.session_state.rooms:
-        if room_type == room["type"]:
-            available_rooms.append(room["name"])
+    available_rooms = [room["name"] for room in st.session_state.rooms if room["type"] == room_type]
 
     if available_rooms:
         return random.choice(available_rooms)
@@ -208,7 +205,7 @@ if not st.session_state.generated:
         st.session_state.locked = True
         st.success("Timetable generated and locked!")
 
-# Update Timetable (for adding new courses without modifying existing ones)
+# Button to Update Timetable
 if st.session_state.generated and st.session_state.locked:
     st.header("Update Timetable")
     
