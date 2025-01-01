@@ -93,7 +93,7 @@ def allocate_lab_course(course_code, course_title, section, room_type):
                     break  # Once scheduled, stop and break
             break  # Once scheduled, stop after assigning to one day
 
-# Function to allocate Theory course (1.5-hour blocks on two different days)
+# Function to allocate a Theory course (1.5-hour blocks on two different days)
 def allocate_theory_course(course_code, course_title, section, room_type):
     room = get_available_room(room_type)
     if room:
@@ -118,6 +118,7 @@ def allocate_theory_course(course_code, course_title, section, room_type):
                     })
                     assigned_slots += 1
                     break  # Once assigned to this day, stop and go to the next day
+
 
 # Function to schedule a course (Theory or Lab)
 def schedule_course(course_code, course_title, section, room_type, slot_preference):
