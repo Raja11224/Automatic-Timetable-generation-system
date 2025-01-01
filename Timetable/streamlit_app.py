@@ -133,13 +133,13 @@ if st.session_state.generated and st.session_state.locked:
         st.dataframe(df)
         st.success("Timetable updated successfully!")
 
-# Ensure the timetable isn't overwritten
+# Display a warning if the timetable has already been generated
 if st.session_state.generated:
     st.warning("The timetable has already been generated. To make changes, please click 'Update Timetable'.")
-    return
 
 # Add Course Form
-if st.button("Add Course"):
+if not st.session_state.generated:  # Only allow adding courses if the timetable is not generated
+    st.header("Add Course")
     course_code = st.text_input("Course Code")
     course_title = st.text_input("Course Title")
     section = st.text_input("Section")
@@ -147,7 +147,14 @@ if st.button("Add Course"):
     slot_preference = st.selectbox("Slot Preference", ["1.5 Hour blocks", "3 Hour consecutive block"])
 
     if course_code and course_title and section:
-        add_course(course_code, course_title, section, room_type, slot_preference)
+        # Add the course to session state
+        st.session_state.courses.append({
+            'course_code': course_code,
+            'course_title': course_title,
+            'section': section,
+            'room_type': room_type,
+            'slot_preference': slot_preference
+        })
         st.success(f"Course {course_code} added successfully!")
 
 # Display generated timetable
