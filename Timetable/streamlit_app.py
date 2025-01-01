@@ -53,7 +53,6 @@ def add_course(course_code, course_title, section, room_type, slot_preference):
 # Function to get available room of a specific type
 def get_available_room(room_type):
     available_rooms = [room["name"] for room in st.session_state.rooms if room["type"] == room_type]
-
     if available_rooms:
         return random.choice(available_rooms)
     else:
@@ -190,20 +189,17 @@ if st.session_state.rooms:
     st.dataframe(rooms_df)
 
 # Button to Generate Timetable
-if not st.session_state.generated:
-    if st.button("Generate Timetable"):
-        # Schedule all courses
-        for course in st.session_state.courses:
-            schedule_course(course['course_code'], course['course_title'], course['section'], course['room_type'], course['slot_preference'])
-        
-        # Get and display the timetable
-        timetable_data = get_timetable()
-        timetable_df = pd.DataFrame(timetable_data)
-        st.dataframe(timetable_df)
-        
-        st.session_state.generated = True
-        st.session_state.locked = True
-        st.success("Timetable generated and locked!")
+if st.button("Generate Timetable"):
+    for course in st.session_state.courses:
+        schedule_course(course['course_code'], course['course_title'], course['section'], course['room_type'], course['slot_preference'])
+    
+    timetable_data = get_timetable()
+    timetable_df = pd.DataFrame(timetable_data)
+    st.dataframe(timetable_df)
+    
+    st.session_state.generated = True
+    st.session_state.locked = True
+    st.success("Timetable generated and locked!")
 
 # Button to Update Timetable
 if st.session_state.generated and st.session_state.locked:
@@ -215,7 +211,6 @@ if st.session_state.generated and st.session_state.locked:
             if course['course_code'] not in [c['course_code'] for c in st.session_state.courses]:
                 schedule_course(course['course_code'], course['course_title'], course['section'], course['room_type'], course['slot_preference'])
         
-        # Get the updated timetable and display it
         timetable_data = get_timetable()
         timetable_df = pd.DataFrame(timetable_data)
         st.dataframe(timetable_df)
