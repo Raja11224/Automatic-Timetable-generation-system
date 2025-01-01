@@ -29,9 +29,9 @@ if 'course_title' not in st.session_state:
 if 'section' not in st.session_state:
     st.session_state.section = ""
 
-# Sample days of the week
-days_of_week = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
-available_time_slots = ["8:00 - 9:30", "9:30 - 11:00", "11:00 - 12:30", "12:30 - 2:00", "2:00 - 3:30", "3:30 - 5:00", "5:00 - 6:30"]
+# Sample days of the week and available time slots
+days_of_week = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+available_time_slots = ["8:00 - 9:30", "9:30 - 11:00", "11:00 - 12:30", "12:30 - 2:00", "2:00 - 3:30", "3:30 - 5:00"]
 
 # Function to get courses
 def get_courses():
@@ -140,7 +140,6 @@ def allocate_3_hour_consecutive_slot(course_code, course_title, section, room_ty
                         'room': room
                     })
                     return  # Lab is scheduled, no need to schedule again
-            # If a lab is scheduled, break out
             else:
                 continue
 
@@ -165,37 +164,6 @@ with st.form(key='add_course_form'):
             st.success(f"Course {course_code} added successfully!")
         else:
             st.error("Please fill in all fields.")
-
-# Section to manage rooms (Add and Delete rooms)
-st.header("Manage Rooms")
-
-# Add Room Section
-with st.form(key="add_room_form"):
-    room_name = st.text_input("Room Name")
-    room_type = st.selectbox("Room Type", ["Theory", "Lab"])
-    
-    add_room_button = st.form_submit_button(label="Add Room")
-    
-    if add_room_button:
-        if room_name:
-            add_room(room_name, room_type)
-            st.success(f"Room {room_name} added successfully!")
-        else:
-            st.error("Please provide a room name.")
-
-# Delete Room Section
-room_to_delete = st.selectbox("Select Room to Delete", st.session_state.rooms, format_func=lambda room: room['name'])
-delete_room_button = st.button("Delete Room")
-if delete_room_button:
-    delete_room(room_to_delete)
-    st.success(f"Room {room_to_delete} deleted successfully!")
-
-# Section to display the list of added courses at the bottom
-st.header("Courses Added")
-
-if st.session_state.courses:
-    courses_df = pd.DataFrame(st.session_state.courses)
-    st.dataframe(courses_df)
 
 # Section to generate timetable
 if not st.session_state.locked:
