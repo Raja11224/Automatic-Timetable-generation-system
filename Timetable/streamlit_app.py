@@ -87,24 +87,25 @@ def allocate_lab_course(course_code, course_title, section, room_type):
 
         # Iterate over the shuffled days and try to assign the lab to one day
         for day in available_days:
-            # Check for 3 consecutive time slots availability
-            for i in range(len(available_time_slots) - 2):  # Ensure 3 consecutive slots
+            # Check for 2 consecutive time slots availability (1.5 hour x 2)
+            for i in range(len(available_time_slots) - 1):  # Ensure 2 consecutive slots
                 slot_1 = available_time_slots[i]
                 slot_2 = available_time_slots[i + 1]
-                slot_3 = available_time_slots[i + 2]
 
                 # If slots are available, assign the 3-hour block
-                st.session_state.timetable[day][course_code].append({
-                    'time': f"{slot_1} - {slot_3}",
-                    'room': room
-                })
-                break  # Once scheduled on one day, stop
+                # Check if room is available during the selected time slots
+                if not any(session['room'] == room and session['time'] == f"{slot_1} - {slot_2}" for session in st.session_state.timetable[day].get(course_code, [])):
+                    st.session_state.timetable[day][course_code].append({
+                        'time': f"{slot_1} - {slot_2}",
+                        'room': room
+                    })
+                    break  # Once scheduled on one day, stop
             break  # Stop after assigning on one day
 
 # Function to schedule a course (Theory or Lab)
 def schedule_course(course_code, course_title, section, room_type, slot_preference):
     # Check if the course has already been scheduled
-    if course_code in st.session_state.timetable:
+    if any(course_code in st.session_state.timetable[day] for day in days_of_week):
         st.warning(f"Course {course_code} is already scheduled. Skipping allocation.")
         return
 
@@ -128,3 +129,68 @@ if st.session_state.generated and st.session_state.locked:
         df = pd.DataFrame(timetable_data)
         st.dataframe(df)
         st.success("Timetable updated successfully!")
+
+# Adding or removing rooms section
+st.header("Room Management")
+
+# Form to add a room
+with st.form(key='add_room_form'):
+    room_name = st.text_input("Room Name (e.g., Room 6)")
+    room_type = st.selectbox("Room Type", ["Theory", "Lab"])
+    add_room_button = st.form_submit_button(label="Add Room")
+    
+    if add_room_button:
+        if room_name:
+            st.session_state.rooms.append({"name": room_name, "type": room_type})
+            st.success(f"Room {room_name} added successfully!")
+        else:
+            st.error("Please provide a room name.")
+
+# Form to delete a room
+with st.form(key='delete_room_form'):
+    room_to_delete = st.selectbox("Select Room to Delete", [room["name"] for room in st.session_state.rooms])
+    delete_room_button = st.form_submit_button(label="Delete Room")
+    
+    if delete_room_button:
+        # Remove the room from the list
+        st.session_state.rooms = [room for room in st.session_state.rooms if room["name"] != room_to_delete]
+        st.success(f"Room {room_to_delete} deleted successfully!")
+
+# Adding courses section
+st.header("Add Courses")
+
+with st.form(key='add_course_form'):
+    course_code = st.text_input("Course Code (e.g., CS101)")
+    course_title = st.text_input("Course Title (e.g., Computer Science 101)")
+    section = st.text_input("Section (e.g., A)")
+    room_type = st.selectbox("Room Type", ["Theory", "Lab"])
+    slot_preference = st.selectbox("Slot Preference", ["1.5 Hour blocks", "3 Hour consecutive block"])
+    add_course_button = st.form_submit_button(label="Add Course")
+    
+    if add_course_button:
+        if course_code and course_title and section:
+            add_course(course_code, course_title, section, room_type, slot_preference)
+            st.success(f"Course {course_code} added successfully!")
+        else:
+            st.error("Please provide all course details.")
+
+# Displaying added courses
+if st.session_state.courses:
+    st.subheader("Added Courses:")
+    
+    try:
+        courses_data = [{
+            'Course Code': course.get('course_code', ''),
+            'Course Title': course.get('course_title', ''),
+            'Section': course.get('section', ''),
+            'Room Type': course.get('room_type', ''),
+            'Slot Preference': course.get('slot_preference', '')
+        } for course in st.session_state.courses]
+        
+        if courses_data:
+            courses_df = pd.DataFrame(courses_data)
+            st.dataframe(courses_df)
+        else:
+            st.warning("No courses available to display.")
+    except Exception as e:
+        st.error(f"Error while displaying courses: {str(e)}")
