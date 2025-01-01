@@ -63,7 +63,7 @@ def get_available_room(room_type):
         st.warning(f"No available rooms for {room_type} type.")
         return None
 
-# Function to allocate a 3-hour consecutive block (Lab)
+# Function to allocate a Lab course (2 consecutive 1.5-hour blocks)
 def allocate_lab_course(course_code, course_title, section, room_type):
     room = get_available_room(room_type)
     if room:
@@ -71,9 +71,9 @@ def allocate_lab_course(course_code, course_title, section, room_type):
         available_days = days_of_week.copy()
         scheduled = any(course_code in st.session_state.timetable[day] for day in available_days)
 
+        # Don't schedule if it's already in the timetable
         if scheduled:
-            st.warning(f"Course {course_code} is already scheduled for the week. Skipping allocation.")
-            return
+            return  # Skip allocation if already scheduled (no warning shown)
         
         random.shuffle(available_days)  # Shuffle days to get a random choice
 
@@ -93,22 +93,25 @@ def allocate_lab_course(course_code, course_title, section, room_type):
                     break  # Once scheduled on one day, stop
             break  # Stop after assigning on one day
 
-# Function to allocate a 1.5-hour block (Theory)
+# Function to allocate Theory course (1.5-hour blocks on two different days)
 def allocate_theory_course(course_code, course_title, section, room_type):
     room = get_available_room(room_type)
     if room:
-        # Choose a random day for the theory course (only one day)
+        # Choose random days for the theory course (two different days)
         available_days = days_of_week.copy()
         scheduled = any(course_code in st.session_state.timetable[day] for day in available_days)
 
+        # Don't schedule if it's already in the timetable
         if scheduled:
-            st.warning(f"Course {course_code} is already scheduled for the week. Skipping allocation.")
-            return
+            return  # Skip allocation if already scheduled (no warning shown)
         
         random.shuffle(available_days)  # Shuffle days to get a random choice
 
-        # Iterate over the shuffled days and try to assign the theory to one day
+        # Iterate over the shuffled days and try to assign the theory to two days
+        assigned_slots = 0
         for day in available_days:
+            if assigned_slots >= 2:  # Assign only on two different days
+                break
             # Check for 1.5-hour time slot availability
             for i in range(len(available_time_slots)):
                 slot_1 = available_time_slots[i]
@@ -119,15 +122,14 @@ def allocate_theory_course(course_code, course_title, section, room_type):
                         'time': slot_1,
                         'room': room
                     })
-                    break  # Once scheduled on one day, stop
-            break  # Stop after assigning on one day
+                    assigned_slots += 1
+                    break  # Once assigned to this day, stop and go to the next day
 
 # Function to schedule a course (Theory or Lab)
 def schedule_course(course_code, course_title, section, room_type, slot_preference):
     # Check if the course has already been scheduled
     if course_code in st.session_state.timetable:
-        st.warning(f"Course {course_code} is already scheduled. Skipping allocation.")
-        return
+        return  # Skip allocation if already scheduled (no warning shown)
 
     # Proceed with scheduling the course if not already scheduled
     if room_type == "Theory" and slot_preference == "1.5 Hour blocks":
@@ -192,22 +194,18 @@ if not st.session_state.locked:
         for course in st.session_state.courses:
             schedule_course(course['course_code'], course['course_title'], course['section'], course['room_type'], course['slot_preference'])
         
-        st.session_state.generated = True
-        st.session_state.locked = True  # Lock timetable after generation
+        timetable_data = get_timetable()
+        timetable_df = pd.DataFrame(timetable_data)
+        st.dataframe(timetable_df)
         st.success("Timetable generated successfully!")
+        st.session_state.generated = True
+        st.session_state.locked = True
 
-# Display Generated Timetable
-if st.session_state.generated:
-    timetable_data = get_timetable()
-    timetable_df = pd.DataFrame(timetable_data)
-    st.subheader("Generated Timetable")
-    st.dataframe(timetable_df)
-
-    # Section to update timetable (only allowed after generation and locked)
+# Section to update timetable (only allowed after generation and locked)
+if st.session_state.generated and st.session_state.locked:
+    st.header("Update Timetable")
     if st.button("Update Timetable"):
-        # Schedule only those courses that have not been scheduled already
         for course in st.session_state.courses:
-            # Ensure the course is scheduled if not already done
             schedule_course(course['course_code'], course['course_title'], course['section'], course['room_type'], course['slot_preference'])
         
         timetable_data = get_timetable()
