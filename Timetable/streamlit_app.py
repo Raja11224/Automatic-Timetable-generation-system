@@ -99,6 +99,21 @@ with st.form(key='add_course_form'):
         else:
             st.error("Please fill in all fields.")
 
+# Show all added courses
+if st.session_state.courses:
+    st.header("Added Courses")
+    course_data = []
+    for course in st.session_state.courses:
+        course_data.append({
+            'Course Code': course['course_code'],
+            'Course Title': course['course_title'],
+            'Section': course['section'],
+            'Room Type': course['room_type'],
+            'Slot Preference': course['slot_preference']
+        })
+    df_courses = pd.DataFrame(course_data)
+    st.dataframe(df_courses)
+
 # Manage rooms (Add rooms)
 st.header("Manage Rooms")
 with st.form(key="add_room_form"):
@@ -111,6 +126,7 @@ with st.form(key="add_room_form"):
 
 # Generate timetable
 if st.button("Generate Timetable"):
+    # Allocate courses based on their preferences
     for course in st.session_state.courses:
         if course['slot_preference'] == "1.5 Hour slots":
             allocate_1_5_hour_slots(course['course_code'], course['room_type'])
