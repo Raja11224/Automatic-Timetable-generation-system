@@ -133,6 +133,15 @@ if st.session_state.generated and st.session_state.locked:
 # Adding or removing rooms section
 st.header("Room Management")
 
+# Display current rooms
+st.subheader("Current Rooms")
+rooms_data = [{"Room Name": room["name"], "Room Type": room["type"]} for room in st.session_state.rooms]
+if rooms_data:
+    rooms_df = pd.DataFrame(rooms_data)
+    st.dataframe(rooms_df)
+else:
+    st.warning("No rooms available.")
+
 # Form to add a room
 with st.form(key='add_room_form'):
     room_name = st.text_input("Room Name (e.g., Room 6)")
@@ -141,8 +150,12 @@ with st.form(key='add_room_form'):
     
     if add_room_button:
         if room_name:
-            st.session_state.rooms.append({"name": room_name, "type": room_type})
-            st.success(f"Room {room_name} added successfully!")
+            # Check if room already exists
+            if any(room["name"] == room_name for room in st.session_state.rooms):
+                st.warning(f"Room {room_name} already exists.")
+            else:
+                st.session_state.rooms.append({"name": room_name, "type": room_type})
+                st.success(f"Room {room_name} added successfully!")
         else:
             st.error("Please provide a room name.")
 
@@ -152,9 +165,13 @@ with st.form(key='delete_room_form'):
     delete_room_button = st.form_submit_button(label="Delete Room")
     
     if delete_room_button:
-        # Remove the room from the list
-        st.session_state.rooms = [room for room in st.session_state.rooms if room["name"] != room_to_delete]
-        st.success(f"Room {room_to_delete} deleted successfully!")
+        # Ensure the room is not in use before deletion
+        if room_to_delete:
+            # Remove the room from the list
+            st.session_state.rooms = [room for room in st.session_state.rooms if room["name"] != room_to_delete]
+            st.success(f"Room {room_to_delete} deleted successfully!")
+        else:
+            st.warning("Please select a room to delete.")
 
 # Adding courses section
 st.header("Add Courses")
@@ -180,17 +197,14 @@ if st.session_state.courses:
     
     try:
         courses_data = [{
-            'Course Code': course.get('course_code', ''),
-            'Course Title': course.get('course_title', ''),
-            'Section': course.get('section', ''),
-            'Room Type': course.get('room_type', ''),
-            'Slot Preference': course.get('slot_preference', '')
+            'Course Code': course['course_code'],
+            'Course Title': course['course_title'],
+            'Section': course['section'],
+            'Room Type': course['room_type'],
+            'Slot Preference': course['slot_preference']
         } for course in st.session_state.courses]
         
-        if courses_data:
-            courses_df = pd.DataFrame(courses_data)
-            st.dataframe(courses_df)
-        else:
-            st.warning("No courses available to display.")
+        courses_df = pd.DataFrame(courses_data)
+        st.dataframe(courses_df)
     except Exception as e:
-        st.error(f"Error while displaying courses: {str(e)}")
+        st.error(f"Error displaying courses: {e}")
