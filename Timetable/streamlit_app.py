@@ -187,15 +187,15 @@ if not st.session_state.locked:
         for course in st.session_state.courses:
             schedule_course(course['course_code'], course['course_title'], course['section'], course['room_type'], course['slot_preference'])
 
-        timetable_data = get_timetable()  # Call the get_timetable function here
+        timetable_data = get_timetable()
         df = pd.DataFrame(timetable_data)
         st.dataframe(df)
-        st.session_state.generated = True
-        st.session_state.locked = True  # Lock timetable after generation
+
+        st.session_state.locked = True  # Lock the timetable after generating
         st.success("Timetable generated successfully!")
 
-# Section to update timetable (only allowed after generation and locked)
-if st.session_state.generated and st.session_state.locked:
+# Section to update timetable
+if st.session_state.locked:
     st.header("Update Timetable")
     if st.button("Update Timetable"):
         # Schedule any newly added courses or updated preferences
