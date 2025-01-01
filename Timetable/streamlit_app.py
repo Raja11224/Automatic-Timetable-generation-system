@@ -17,13 +17,7 @@ if 'timetable' not in st.session_state:
     st.session_state.timetable = defaultdict(lambda: defaultdict(list))
 
 if 'rooms' not in st.session_state:
-    st.session_state.rooms = [
-        {"name": "Room 1", "type": "Theory"},
-        {"name": "Room 2", "type": "Theory"},
-        {"name": "Room 3", "type": "Theory"},
-        {"name": "Room 4", "type": "Lab"},
-        {"name": "Room 5", "type": "Lab"}
-    ]
+    st.session_state.rooms = []
 
 # Sample days of the week and time slots
 days_of_week = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
@@ -60,9 +54,7 @@ def add_course(course_code, course_title, section, room_type, slot_preference):
 def get_available_room(room_type):
     available_rooms = []
     for room in st.session_state.rooms:
-        if room_type == "Lab" and room["type"] == "Lab":
-            available_rooms.append(room["name"])
-        elif room_type == "Theory" and room["type"] == "Theory":
+        if room_type == room["type"]:
             available_rooms.append(room["name"])
 
     if available_rooms:
@@ -93,7 +85,6 @@ def allocate_lab_course(course_code, course_title, section, room_type):
                 slot_2 = available_time_slots[i + 1]
 
                 # If slots are available, assign the 3-hour block
-                # Check if room is available during the selected time slots
                 if not any(session['room'] == room and session['time'] == f"{slot_1} - {slot_2}" for session in st.session_state.timetable[day].get(course_code, [])):
                     st.session_state.timetable[day][course_code].append({
                         'time': f"{slot_1} - {slot_2}",
@@ -129,6 +120,9 @@ def delete_room(room_name):
         st.success(f"Room {room_name} deleted successfully!")
     else:
         st.warning(f"Room {room_name} does not exist.")
+
+# Set the app's title
+st.title("Timetable Generator")
 
 # Add Course Section
 st.header("Add Course")
@@ -167,8 +161,8 @@ st.header("Room Management")
 
 # Display current rooms
 st.subheader("Current Rooms")
-rooms_data = [{"Room Name": room["name"], "Room Type": room["type"]} for room in st.session_state.rooms]
-if rooms_data:
+if st.session_state.rooms:
+    rooms_data = [{"Room Name": room["name"], "Room Type": room["type"]} for room in st.session_state.rooms]
     rooms_df = pd.DataFrame(rooms_data)
     st.dataframe(rooms_df)
 else:
