@@ -96,12 +96,9 @@ def allocate_lab_course(course_code, course_title, section, room_type):
         available_days = days_of_week.copy()
 
         # Check if the lab course is already scheduled for the week
-        scheduled = any(course_code in st.session_state.timetable[day] for day in available_days)
+        if any(course_code in st.session_state.timetable[day] for day in available_days):
+            return  # Skip scheduling if the course is already allocated
 
-        if scheduled:
-            st.warning(f"Course {course_code} is already scheduled for the week. Skipping allocation.")
-            return
-        
         random.shuffle(available_days)  # Shuffle days to get a random choice
 
         # Iterate over the shuffled days and try to assign the lab to only one day
@@ -120,7 +117,6 @@ def allocate_lab_course(course_code, course_title, section, room_type):
                 break  # Once scheduled on one day, stop
             break  # Stop after assigning on one day
 
-
 # Function to add a room
 def add_room(room_name, room_type):
     st.session_state.rooms.append({"name": room_name, "type": room_type})
@@ -135,19 +131,19 @@ def delete_room(room_name):
         st.session_state.rooms = rooms
         st.success(f"Room {room_name} deleted successfully!")
 
-# Function to schedule a course (Theory or Lab)
+
 # Function to schedule a course (Theory or Lab)
 def schedule_course(course_code, course_title, section, room_type, slot_preference):
-    # Check if the course has already been scheduled
+    # Check if the course has already been scheduled for the week
     if course_code in st.session_state.timetable:
-        st.warning(f"Course {course_code} is already scheduled. Skipping allocation.")
-        return
+        return  # Skip scheduling if the course is already assigned
 
     # Proceed with scheduling the course if not already scheduled
     if room_type == "Theory" and slot_preference == "1.5 Hour blocks":
         allocate_theory_course(course_code, course_title, section, room_type)
     elif room_type == "Lab" and slot_preference == "3 Hour consecutive block":
         allocate_lab_course(course_code, course_title, section, room_type)
+
 
 
 # Streamlit User Interface
@@ -220,7 +216,7 @@ if not st.session_state.locked:
         st.session_state.locked = True  # Lock timetable after generation
         st.success("Timetable generated successfully!")
 
-# Section to update timetable (only allowed after generation and locked)
+
 # Section to update timetable (only allowed after generation and locked)
 if st.session_state.generated and st.session_state.locked:
     st.header("Update Timetable")
