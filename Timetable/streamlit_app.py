@@ -93,6 +93,35 @@ def allocate_lab_course(course_code, course_title, section, room_type):
                     break  # Once scheduled on one day, stop
             break  # Stop after assigning on one day
 
+# Function to allocate a 1.5-hour block (Theory)
+def allocate_theory_course(course_code, course_title, section, room_type):
+    room = get_available_room(room_type)
+    if room:
+        # Choose a random day for the theory course (only one day)
+        available_days = days_of_week.copy()
+        scheduled = any(course_code in st.session_state.timetable[day] for day in available_days)
+
+        if scheduled:
+            st.warning(f"Course {course_code} is already scheduled for the week. Skipping allocation.")
+            return
+        
+        random.shuffle(available_days)  # Shuffle days to get a random choice
+
+        # Iterate over the shuffled days and try to assign the theory to one day
+        for day in available_days:
+            # Check for 1.5-hour time slot availability
+            for i in range(len(available_time_slots)):
+                slot = available_time_slots[i]
+
+                # If the slot is available, assign the 1.5-hour block
+                if not any(session['room'] == room and session['time'] == slot for session in st.session_state.timetable[day].get(course_code, [])):
+                    st.session_state.timetable[day][course_code].append({
+                        'time': slot,
+                        'room': room
+                    })
+                    break  # Once scheduled on one day, stop
+            break  # Stop after assigning on one day
+
 # Function to schedule a course (Theory or Lab)
 def schedule_course(course_code, course_title, section, room_type, slot_preference):
     # Check if the course has already been scheduled
@@ -173,16 +202,25 @@ with st.form(key='add_room_form'):
 
 # Form to delete a room
 with st.form(key='delete_room_form'):
-    room_to_delete = st.selectbox("Select Room to Delete", [room["name"] for room in st.session_state.rooms])
+    room_to_delete = st.selectbox("Select Room to Delete", [room['name'] for room in st.session_state.rooms])
     delete_room_button = st.form_submit_button(label="Delete Room")
     
     if delete_room_button:
-        if room_to_delete:
-            delete_room(room_to_delete)
-        else:
-            st.warning("Please select a room to delete.")
+        delete_room(room_to_delete)
 
-# Timetable Section (Generate & Update)
+# Generate Timetable Section
+st.header("Generate Timetable")
+
+if st.button("Generate Timetable"):
+    if st.session_state.courses:
+        for course in st.session_state.courses:
+            schedule_course(course['course_code'], course['course_title'], course['section'], course['room_type'], course['slot_preference'])
+        st.session_state.generated = True
+        st.success("Timetable generated successfully!")
+    else:
+        st.error("Please add some courses before generating the timetable.")
+
+# Update Timetable Section
 if st.session_state.generated and st.session_state.locked:
     st.header("Update Timetable")
     if st.button("Update Timetable"):
@@ -196,16 +234,3 @@ if st.session_state.generated and st.session_state.locked:
         df = pd.DataFrame(timetable_data)
         st.dataframe(df)
         st.success("Timetable updated successfully!")
-
-# Generate Timetable Button (First time scheduling)
-if not st.session_state.generated:
-    st.header("Generate Timetable")
-    if st.button("Generate Timetable"):
-        # Generate timetable only if courses have been added
-        if st.session_state.courses:
-            for course in st.session_state.courses:
-                schedule_course(course['course_code'], course['course_title'], course['section'], course['room_type'], course['slot_preference'])
-            st.session_state.generated = True
-            st.success("Timetable generated successfully!")
-        else:
-            st.warning("Please add some courses before generating the timetable.")
