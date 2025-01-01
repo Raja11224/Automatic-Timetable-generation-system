@@ -92,23 +92,30 @@ def allocate_theory_course(course_code, course_title, section, room_type):
 def allocate_lab_course(course_code, course_title, section, room_type):
     room = get_available_room(room_type)
     if room:
-        # Choose a random day for the lab (only one day)
+        # Shuffle available days and try to assign the course to only one day
         available_days = days_of_week.copy()
         random.shuffle(available_days)  # Shuffle days to get a random choice
-        
+
+        # Iterate over the shuffled days and try to assign the lab to one of them
         for day in available_days:
-            for i in range(len(available_time_slots) - 2):  # Check if 3 consecutive slots are available
+            # Check if there are 3 consecutive time slots available
+            for i in range(len(available_time_slots) - 2):  # Ensure 3 consecutive slots
                 # Get 3 consecutive time slots
                 slot_1 = available_time_slots[i]
                 slot_2 = available_time_slots[i + 1]
                 slot_3 = available_time_slots[i + 2]
 
-                # Assign the 3-hour block to this day
-                st.session_state.timetable[day][course_code].append({
-                    'time': f"{slot_1} - {slot_3}",  # Combine the 3 consecutive slots into one 3-hour block
-                    'room': room
-                })
-                break  # Stop after scheduling on one day
+                # Check if this slot is already occupied for this day and course code
+                if not any(session['time'] == f"{slot_1} - {slot_3}" for session in st.session_state.timetable[day].get(course_code, [])):
+                    # Assign the 3-hour block to this day if available
+                    st.session_state.timetable[day][course_code].append({
+                        'time': f"{slot_1} - {slot_3}",  # Combine the 3 consecutive slots into one 3-hour block
+                        'room': room
+                    })
+                    break  # Stop after scheduling on one day
+            else:
+                continue  # If no slots found, continue with the next day
+            break  # Break out of the loop once we successfully assign the course on a day
 
 
 # Function to add a room
