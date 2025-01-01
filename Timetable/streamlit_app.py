@@ -211,13 +211,13 @@ if st.button("Generate Timetable"):
     else:
         st.warning("Timetable has already been generated.")
 
-# Update Timetable (Only for newly added courses after the timetable generation)
-if st.session_state.generated and not st.session_state.locked:
+# Update Timetable (Only for newly added courses after generation)
+if st.session_state.generated and st.session_state.locked:
     st.header("Update Timetable")
     if st.button("Update Timetable"):
         # Schedule only newly added courses
         for course in st.session_state.courses:
-            if course['course_code'] not in [c['course_code'] for c in st.session_state.courses if 'course_code' in c]:
+            if course['course_code'] not in [c['course_code'] for c in st.session_state.courses]:
                 schedule_course(course['course_code'], course['course_title'], course['section'], course['room_type'], course['slot_preference'])
         
         # Get the updated timetable and display it
