@@ -128,14 +128,26 @@ with st.form(key='add_course_form'):
 # Display Added Courses
 if st.session_state.courses:
     st.subheader("Added Courses:")
-    courses_df = pd.DataFrame([{
-        'Course Code': course['course_code'],
-        'Course Title': course['course_title'],
-        'Section': course['section'],
-        'Room Type': course['room_type'],
-        'Slot Preference': course['slot_preference'],
-    } for course in st.session_state.courses])
-    st.dataframe(courses_df)
+    
+    try:
+        # Ensure courses are structured properly for DataFrame creation
+        courses_data = [{
+            'Course Code': course.get('course_code', ''),
+            'Course Title': course.get('course_title', ''),
+            'Section': course.get('section', ''),
+            'Room Type': course.get('room_type', ''),
+            'Slot Preference': course.get('slot_preference', '')
+        } for course in st.session_state.courses]
+        
+        # Only create DataFrame if there is data
+        if courses_data:
+            courses_df = pd.DataFrame(courses_data)
+            st.dataframe(courses_df)
+        else:
+            st.warning("No courses available to display.")
+    except Exception as e:
+        st.error(f"Error while displaying courses: {str(e)}")
+
 
 # Section to generate timetable
 if not st.session_state.locked:
