@@ -73,7 +73,7 @@ def is_room_available(day, time_slot, room, course_code):
                     return False  # Room is already occupied at that time
     return True  # Room is available
 
-# Function to allocate a Lab course (2 consecutive 1.5-hour blocks)
+# Function to allocate a Lab course (2 consecutive 1.5-hour blocks on a single day)
 def allocate_lab_course(course_code, course_title, section, room_type):
     room = get_available_room(room_type)
     if room:
