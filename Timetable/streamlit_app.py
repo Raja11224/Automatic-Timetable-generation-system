@@ -33,6 +33,16 @@ if 'section' not in st.session_state:
 days_of_week = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 available_time_slots = ["8:00 - 9:30", "9:30 - 11:00", "11:00 - 12:30", "12:30 - 2:00", "2:00 - 3:30", "3:30 - 5:00", "5:00 - 6:30"]
 
+# Function to add a course
+def add_course(course_code, course_title, section, room_type, slot_preference):
+    st.session_state.courses.append({
+        'course_code': course_code,
+        'course_title': course_title,
+        'section': section,
+        'room_type': room_type,
+        'slot_preference': slot_preference
+    })
+
 # Function to add a room
 def add_room(room_name, room_type):
     st.session_state.rooms.append({'name': room_name, 'type': room_type})
