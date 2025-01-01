@@ -91,34 +91,52 @@ def allocate_theory_course(course_code, course_title, section, room_type):
 # Function to allocate a 3-hour consecutive block (Lab) with two 1.5-hour time slots
 def allocate_lab_course(course_code, course_title, section, room_type):
     room = get_available_room(room_type)
-    if room:
-        # Choose a random day for the lab (only one day)
-        available_days = days_of_week.copy()
+    
+    if not room:
+        st.warning(f"No available room for {room_type} lab.")
+        return
+    
+    # Choose a random day for the lab (only one day)
+    available_days = days_of_week.copy()
 
-        # Check if the lab course is already scheduled for the week
-        if any(course_code in st.session_state.timetable[day] for day in available_days):
-            return  # Skip scheduling if the course is already allocated
+    # Check if the lab course is already scheduled for the week
+    if any(course_code in st.session_state.timetable[day] for day in available_days):
+        return  # Skip scheduling if the course is already allocated
 
-        random.shuffle(available_days)  # Shuffle days to get a random choice
+    random.shuffle(available_days)  # Shuffle days to get a random choice
 
-        # Iterate over the shuffled days and try to assign the lab to only one day
-        for day in available_days:
-            # Check for 2 consecutive time slots availability (1.5 hours each)
-            for i in range(len(available_time_slots) - 1):  # Ensure 2 consecutive slots
-                # Get 2 consecutive time slots
-                slot_1 = available_time_slots[i]
-                slot_2 = available_time_slots[i + 1]
+    # Iterate over the shuffled days and try to assign the lab to only one day
+    for day in available_days:
+        # Check for 2 consecutive time slots availability (1.5 hours each)
+        for i in range(len(available_time_slots) - 1):  # Ensure 2 consecutive slots
+            slot_1 = available_time_slots[i]
+            slot_2 = available_time_slots[i + 1]
 
-                # Check if both slots are available on the chosen day
-                if slot_1 not in [s['time'] for s in st.session_state.timetable[day].get(course_code, [])] and \
-                   slot_2 not in [s['time'] for s in st.session_state.timetable[day].get(course_code, [])]:
-                    # If both slots are available, assign the 3-hour block (2 consecutive slots)
-                    st.session_state.timetable[day][course_code].append({
-                        'time': f"{slot_1} - {slot_2}",  # Combine two 1.5-hour slots into a 3-hour block
-                        'room': room
-                    })
-                    break  # Once scheduled on one day, stop
-            break  # Stop after assigning on one day
+            # Check if both slots are free on this day and room is available
+            if is_slot_free(day, course_code, slot_1, slot_2) and not is_room_booked(day, room, slot_1, slot_2):
+                # Assign the 3-hour block (2 consecutive slots) to this day
+                st.session_state.timetable[day][course_code].append({
+                    'time': f"{slot_1} - {slot_2}",  # Combine two 1.5-hour slots into a 3-hour block
+                    'room': room
+                })
+                break  # Once scheduled on one day, stop
+        break  # Stop after assigning on one day
+
+def is_slot_free(day, course_code, slot_1, slot_2):
+    """ Check if the slots are free for the given course on the given day. """
+    for session in st.session_state.timetable[day].get(course_code, []):
+        if session['time'] == f"{slot_1} - {slot_2}":
+            return False  # Slot already booked for the course
+    return True
+
+def is_room_booked(day, room, slot_1, slot_2):
+    """ Check if the room is already booked for the given time slots. """
+    for course in st.session_state.timetable[day].values():
+        for session in course:
+            if session['room'] == room and (session['time'] == f"{slot_1} - {slot_2}"):
+                return True  # Room is already booked for these slots
+    return False
+
 
 # Function to add a room
 def add_room(room_name, room_type):
