@@ -92,31 +92,33 @@ def allocate_theory_course(course_code, course_title, section, room_type):
 def allocate_lab_course(course_code, course_title, section, room_type):
     room = get_available_room(room_type)
     if room:
-        # Shuffle available days and try to assign the course to only one day
+        # Choose a random day for the lab (only one day)
         available_days = days_of_week.copy()
+
+        # Check if the lab course is already scheduled for the week
+        scheduled = any(course_code in st.session_state.timetable[day] for day in available_days)
+
+        if scheduled:
+            st.warning(f"Course {course_code} is already scheduled for the week. Skipping allocation.")
+            return
+        
         random.shuffle(available_days)  # Shuffle days to get a random choice
 
-        # Iterate over the shuffled days and try to assign the lab to one of them
+        # Iterate over the shuffled days and try to assign the lab to only one day
         for day in available_days:
-            # Check if there are 3 consecutive time slots available
+            # Check for 3 consecutive time slots availability
             for i in range(len(available_time_slots) - 2):  # Ensure 3 consecutive slots
-                # Get 3 consecutive time slots
                 slot_1 = available_time_slots[i]
                 slot_2 = available_time_slots[i + 1]
                 slot_3 = available_time_slots[i + 2]
 
-                # Check if this slot is already occupied for this day and course code
-                if not any(session['time'] == f"{slot_1} - {slot_3}" for session in st.session_state.timetable[day].get(course_code, [])):
-                    # Assign the 3-hour block to this day if available
-                    st.session_state.timetable[day][course_code].append({
-                        'time': f"{slot_1} - {slot_3}",  # Combine the 3 consecutive slots into one 3-hour block
-                        'room': room
-                    })
-                    break  # Stop after scheduling on one day
-            else:
-                continue  # If no slots found, continue with the next day
-            break  # Break out of the loop once we successfully assign the course on a day
-
+                # If slots are available, assign the 3-hour block
+                st.session_state.timetable[day][course_code].append({
+                    'time': f"{slot_1} - {slot_3}",
+                    'room': room
+                })
+                break  # Once scheduled on one day, stop
+            break  # Stop after assigning on one day
 
 
 # Function to add a room
@@ -134,11 +136,19 @@ def delete_room(room_name):
         st.success(f"Room {room_name} deleted successfully!")
 
 # Function to schedule a course (Theory or Lab)
+# Function to schedule a course (Theory or Lab)
 def schedule_course(course_code, course_title, section, room_type, slot_preference):
+    # Check if the course has already been scheduled
+    if course_code in st.session_state.timetable:
+        st.warning(f"Course {course_code} is already scheduled. Skipping allocation.")
+        return
+
+    # Proceed with scheduling the course if not already scheduled
     if room_type == "Theory" and slot_preference == "1.5 Hour blocks":
         allocate_theory_course(course_code, course_title, section, room_type)
     elif room_type == "Lab" and slot_preference == "3 Hour consecutive block":
         allocate_lab_course(course_code, course_title, section, room_type)
+
 
 # Streamlit User Interface
 st.title("Course Timetable Generator")
@@ -211,13 +221,18 @@ if not st.session_state.locked:
         st.success("Timetable generated successfully!")
 
 # Section to update timetable (only allowed after generation and locked)
+# Section to update timetable (only allowed after generation and locked)
 if st.session_state.generated and st.session_state.locked:
     st.header("Update Timetable")
     if st.button("Update Timetable"):
+        # Schedule only those courses that have not been scheduled already
         for course in st.session_state.courses:
+            # Ensure the course is scheduled if not already done
             schedule_course(course['course_code'], course['course_title'], course['section'], course['room_type'], course['slot_preference'])
-
+        
+        # Get the updated timetable and display it
         timetable_data = get_timetable()
         df = pd.DataFrame(timetable_data)
         st.dataframe(df)
         st.success("Timetable updated successfully!")
+
