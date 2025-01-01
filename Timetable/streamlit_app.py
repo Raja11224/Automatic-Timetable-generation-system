@@ -131,6 +131,14 @@ with st.form(key='add_course_form'):
         else:
             st.error("Please fill in all fields.")
 
+# Display added courses at the bottom
+st.header("Added Courses")
+if st.session_state.courses:
+    for course in st.session_state.courses:
+        st.write(f"Course Code: {course['course_code']}, Title: {course['course_title']}, Section: {course['section']}, Room Type: {course['room_type']}, Slot Preference: {course['slot_preference']}")
+else:
+    st.write("No courses added yet.")
+
 # Section to manage rooms (Add and Delete rooms)
 st.header("Manage Rooms")
 
