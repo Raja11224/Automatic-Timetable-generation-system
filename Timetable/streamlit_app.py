@@ -159,15 +159,6 @@ if st.session_state.courses:
 # Room Management Section
 st.header("Room Management")
 
-# Display current rooms
-st.subheader("Current Rooms")
-if st.session_state.rooms:
-    rooms_data = [{"Room Name": room["name"], "Room Type": room["type"]} for room in st.session_state.rooms]
-    rooms_df = pd.DataFrame(rooms_data)
-    st.dataframe(rooms_df)
-else:
-    st.warning("No rooms available.")
-
 # Form to add a room
 with st.form(key='add_room_form'):
     room_name = st.text_input("Room Name (e.g., Room 6)")
