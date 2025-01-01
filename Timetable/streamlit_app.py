@@ -65,9 +65,12 @@ def get_available_room(room_type):
 
 # Function to check if room is already occupied at the given time
 def is_room_available(day, time_slot, room, course_code):
-    for session in st.session_state.timetable[day].get(course_code, []):
-        if session['time'] == time_slot and session['room'] == room:
-            return False  # Room is already occupied
+    # Check if any session for this course is scheduled at the same time in the same room
+    for other_course_code in st.session_state.timetable[day]:
+        if course_code != other_course_code:
+            for session in st.session_state.timetable[day].get(other_course_code, []):
+                if session['time'] == time_slot and session['room'] == room:
+                    return False  # Room is already occupied at that time
     return True  # Room is available
 
 # Function to allocate a Lab course (2 consecutive 1.5-hour blocks)
@@ -184,16 +187,16 @@ st.header("Room Management")
 
 # Add Room Form
 with st.form(key='add_room_form'):
-    room_name = st.text_input("Room Name (e.g., Room 6)")
+    room_name = st.text_input("Room Name")
     room_type = st.selectbox("Room Type", ["Theory", "Lab"])
     add_room_button = st.form_submit_button(label="Add Room")
     
     if add_room_button:
-        if room_name:
+        if room_name and room_type:
             st.session_state.rooms.append({"name": room_name, "type": room_type})
             st.success(f"Room {room_name} added successfully!")
         else:
-            st.error("Please provide a room name.")
+            st.error("Please fill in all fields.")
 
 # Display Rooms
 if st.session_state.rooms:
