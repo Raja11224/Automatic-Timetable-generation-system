@@ -74,18 +74,11 @@ def is_room_available(day, time_slot, room, course_code, section, course_type):
         for session in st.session_state.timetable[day].get(other_course_code, []):
             # Avoid conflicts for the same course section
             if other_course_code == course_code and session['section'] != section:
-                if course_type == "Theory":
-                    # Check if the same course section is being scheduled for consecutive blocks on the same day
-                    if session['time'] == time_slot and session['room'] == room:
-                        return False  # Room is already occupied by another section of the same course
-                    # Ensure no consecutive time slots for the same course section
-                    for i in range(len(available_time_slots) - 1):  # Loop should be over available time slots
-                        if available_time_slots[i + 1] == time_slot:
-                            return False  # Consecutive blocks are not allowed for the same course on the same day
-                elif course_type == "Lab":
-                    # For Lab courses, check if 3-hour block is being assigned to the same room
-                    if session['room'] == room and session['time'] == time_slot:
-                        return False  # Room is already occupied by a different section
+                if session['room'] == room and session['time'] == time_slot:
+                    return False  # Room is already occupied at the time
+            # Ensure no conflict with Lab and Theory courses for the same time
+            if session['room'] == room and session['time'] == time_slot:
+                return False  # Room is already occupied at the time
     return True  # Room is available
 
 
@@ -163,6 +156,8 @@ def allocate_theory_course(course_code, course_title, section, room_type):
 
 
 
+
+# Function to schedule a course (Theory or Lab)
 # Function to schedule a course (Theory or Lab)
 def schedule_course(course_code, course_title, section, room_type, slot_preference):
     """
