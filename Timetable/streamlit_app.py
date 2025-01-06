@@ -160,10 +160,12 @@ def schedule_course(course_code, course_title, section, room_type, slot_preferen
     """
     Assign time and room to a course section based on the course type.
     """
-    # Check if the course section has already been scheduled
-    if any(course['course_code'] == course_code and course['section'] == section for course in st.session_state.courses):
-        st.warning(f"Course {course_code} ({section}) has already been scheduled.")
-        return  # Skip allocation if already scheduled
+    # Check if the course section has already been scheduled in the timetable
+    if course_code in st.session_state.timetable:
+        for scheduled_course in st.session_state.timetable[course_code]:
+            if scheduled_course['section'] == section:
+                st.warning(f"Course {course_code} ({section}) has already been scheduled.")
+                return  # Skip allocation if already scheduled
 
     st.info(f"Scheduling Course {course_code} ({section})...")  # Debug log
 
@@ -172,6 +174,7 @@ def schedule_course(course_code, course_title, section, room_type, slot_preferen
         allocate_theory_course(course_code, course_title, section, room_type)
     elif room_type == "Lab" and slot_preference == "3 Hour consecutive block":
         allocate_lab_course(course_code, course_title, section, room_type)
+
 
 
 
