@@ -73,13 +73,15 @@ def is_room_available(day, time_slot, room, course_code, section, course_type):
     for other_course_code in st.session_state.timetable[day]:
         for session in st.session_state.timetable[day].get(other_course_code, []):
             # Avoid conflicts for the same course section
-            if other_course_code == course_code and session['section'] != section:
-                if session['room'] == room and session['time'] == time_slot:
-                    return False  # Room is already occupied at the time
+            if other_course_code == course_code and session['section'] == section:
+                continue  # Skip the same section
+
             # Ensure no conflict with Lab and Theory courses for the same time
             if session['room'] == room and session['time'] == time_slot:
                 return False  # Room is already occupied at the time
+
     return True  # Room is available
+
 
 
 # Function to allocate a Lab course (2 consecutive 1.5-hour blocks on a single day)
