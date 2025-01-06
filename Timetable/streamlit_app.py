@@ -91,7 +91,7 @@ def is_room_available(day, time_slot, room, course_code, section, course_type):
 
 
 # Function to allocate a Lab course (2 consecutive 1.5-hour blocks on a single day)
-def allocate_lab_course(course_code, course_title, section, room_type):
+ef allocate_lab_course(course_code, course_title, section, room_type):
     room = get_available_room(room_type)  # Get an available room for the lab course
     if room:
         # Choose a random day for the lab (only one day)
@@ -114,7 +114,6 @@ def allocate_lab_course(course_code, course_title, section, room_type):
                     })
                     break  # Once scheduled, stop and break
             break  # Once scheduled, stop after assigning to one day
-
 
 
 # Function to allocate Theory course (1.5-hour blocks on two different days)
@@ -163,13 +162,14 @@ def allocate_theory_course(course_code, course_title, section, room_type):
 
 
 
+
 # Function to schedule a course (Theory or Lab)
 def schedule_course(course_code, course_title, section, room_type, slot_preference):
     """
     Assign time and room to a course section based on the course type.
     """
     # Check if the course section has already been scheduled
-    if 'scheduled' in [course for course in st.session_state.courses if course['course_code'] == course_code and course['section'] == section]:
+    if any(course['course_code'] == course_code and course['section'] == section and 'scheduled' in course for course in st.session_state.courses):
         return  # Skip allocation if already scheduled
 
     # Proceed with scheduling the course section if not already scheduled
