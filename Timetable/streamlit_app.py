@@ -91,7 +91,7 @@ def is_room_available(day, time_slot, room, course_code, section, course_type):
 
 
 # Function to allocate a Lab course (2 consecutive 1.5-hour blocks on a single day)
-ef allocate_lab_course(course_code, course_title, section, room_type):
+def allocate_lab_course(course_code, course_title, section, room_type):
     room = get_available_room(room_type)  # Get an available room for the lab course
     if room:
         # Choose a random day for the lab (only one day)
