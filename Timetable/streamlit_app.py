@@ -61,113 +61,105 @@ def get_available_room(room_type):
         st.warning(f"No available rooms for {room_type} type.")
         return None
 
-
 def is_room_available(day, time_slot, room, course_code, section, course_type):
     """
     Check if a room is available for a specific course section at a given time.
+    Args:
+        - day: The day of the week
+        - time_slot: The time slot being considered
+        - room: The room being considered
+        - course_code: The course code
+        - section: The section of the course
+        - course_type: The type of the course ('Theory' or 'Lab')
     """
     for other_course_code in st.session_state.timetable[day]:
         for session in st.session_state.timetable[day].get(other_course_code, []):
-            # Avoid conflicts for the same course section
+            # Check if any session of the same course has already been scheduled for a different section
             if other_course_code == course_code and session['section'] != section:
                 if session['room'] == room and session['time'] == time_slot:
                     return False  # Room is already occupied at the time
-            # Ensure no conflict with Lab and Theory courses for the same time
+            # Ensure no conflict with other courses (Theory or Lab)
             if session['room'] == room and session['time'] == time_slot:
                 return False  # Room is already occupied at the time
     return True  # Room is available
 
 
 
+
 # Function to allocate a Lab course (2 consecutive 1.5-hour blocks on a single day)
+# Function to allocate Lab course (3-hour consecutive blocks on a single day)
 def allocate_lab_course(course_code, course_title, section, room_type):
     room = get_available_room(room_type)  # Get an available room for the lab course
     if room:
-        # Choose a random day for the lab (only one day)
+        # Shuffle available days to assign the lab course to one day
         available_days = days_of_week.copy()
         random.shuffle(available_days)
 
         for day in available_days:
+            # Try to find two consecutive time slots for the lab (1.5 hours each)
             for i in range(len(available_time_slots) - 1):  # Ensure 2 consecutive slots
                 slot_1 = available_time_slots[i]
                 slot_2 = available_time_slots[i + 1]
 
-                # Debugging log: Check if room is available for this slot
+                # Ensure the room is available for both slots
                 if is_room_available(day, f"{slot_1} - {slot_2}", room, course_code, section, "Lab"):
                     st.session_state.timetable[day][course_code].append({
                         'time': f"{slot_1} - {slot_2}",
                         'room': room,
-                        'section': section
+                        'section': section  # Add the section information
                     })
-                    st.success(f"Lab Course {course_code} ({section}) scheduled on {day} at {slot_1} - {slot_2}")
-                    break  # Stop when one section is allocated
+                    break  # Once scheduled, stop and break
             break  # Stop after assigning the lab course to one day
-        else:
-            st.warning(f"Lab Course {course_code} ({section}) could not be scheduled.")
 
 
 
 
+
+                                                    
 # Function to allocate Theory course (1.5-hour blocks on two different days)
 def allocate_theory_course(course_code, course_title, section, room_type):
-    # Step 1: Get an available room for the theory course
-    room = get_available_room(room_type)
-    if not room:
-        return  # If no room is available, exit early
+    room = get_available_room(room_type)  # Get an available room for the theory course
+    if room:
+        # Shuffle available days to assign two different days for the theory course
+        available_days = days_of_week.copy()
+        random.shuffle(available_days)
 
-    # Step 2: Choose exactly two different days for the theory course
-    available_days = days_of_week.copy()
-    random.shuffle(available_days)
-
-    assigned_days = []  # To track assigned days
-    assigned_slots = 0  # Counter to track slots assigned
-
-    # Step 3: Assign time slots for the two different days
-    for day in available_days:
-        if assigned_slots >= 2:  # Stop once we have two days scheduled
-            break
-        
-        # Shuffle available time slots for randomness
-        available_slots_for_day = available_time_slots.copy()
-        random.shuffle(available_slots_for_day)
-
-        # Step 4: Try to find an available time slot on this day
-        for slot_1 in available_slots_for_day:
-            # Check if the room is available at this time
-            if is_room_available(day, slot_1, room, course_code, section, "Theory"):
-                # Schedule the course for this day and slot
-                st.session_state.timetable[day][course_code].append({
-                    'time': slot_1,
-                    'room': room,
-                    'section': section
-                })
-                assigned_days.append(day)  # Add this day to the list of assigned days
-                assigned_slots += 1  # Increment the assigned slots
-                break  # Move to the next day after assigning this slot
-
-    # Step 5: If only one day was assigned, we need to assign the second time slot
-    if assigned_slots == 1:
-        # We need to find another available day for the second time slot
+        assigned_slots = 0
         for day in available_days:
-            if day not in assigned_days:
-                available_slots_for_day = available_time_slots.copy()
-                random.shuffle(available_slots_for_day)
+            if assigned_slots >= 2:  # Theory course needs two different days
+                break
 
-                for slot_2 in available_slots_for_day:
-                    # Check if the room is available for the second slot on this day
-                    if is_room_available(day, slot_2, room, course_code, section, "Theory"):
-                        # Schedule the course for this second time slot
+            # Try to assign a time slot for the course
+            for i in range(len(available_time_slots)):
+                slot = available_time_slots[i]
+
+                # Ensure the slot is available for this day and course
+                if is_room_available(day, slot, room, course_code, section, "Theory"):
+                    st.session_state.timetable[day][course_code].append({
+                        'time': slot,
+                        'room': room,
+                        'section': section  # Add the section information
+                    })
+                    assigned_slots += 1
+                    break  # Stop after assigning to this day
+
+        # If only one slot was assigned, try to assign the second one to another day
+        if assigned_slots == 1:
+            for day in available_days:
+                if day not in st.session_state.timetable:
+                    continue
+                for i in range(len(available_time_slots)):
+                    slot = available_time_slots[i]
+
+                    # Assign the second 1.5 hour block to a different day
+                    if is_room_available(day, slot, room, course_code, section, "Theory"):
                         st.session_state.timetable[day][course_code].append({
-                            'time': slot_2,
+                            'time': slot,
                             'room': room,
-                            'section': section
+                            'section': section  # Add the section information
                         })
-                        break  # Break after scheduling the second slot
-                break  # Break after assigning the second day
+                        break  # Once assigned, break out
 
-    # Step 6: If we didn't manage to schedule on both days, we could notify or retry
-    if assigned_slots < 2:
-        st.warning(f"Could not fully schedule Theory course {course_code} (Section {section}) on two different days.")
 
 
 
@@ -178,14 +170,12 @@ def schedule_course(course_code, course_title, section, room_type, slot_preferen
     """
     Assign time and room to a course section based on the course type.
     """
-    # Check if the course section has already been scheduled in the timetable
-    if course_code in st.session_state.timetable:
-        for scheduled_course in st.session_state.timetable[course_code]:
-            if scheduled_course['section'] == section:
-                st.warning(f"Course {course_code} ({section}) has already been scheduled.")
+    # Check if the course section has already been scheduled
+    for course in st.session_state.courses:
+        if course['course_code'] == course_code and course['section'] == section:
+            # Skip scheduling if already scheduled
+            if 'scheduled' in course:
                 return  # Skip allocation if already scheduled
-
-    st.info(f"Scheduling Course {course_code} ({section})...")  # Debug log
 
     # Proceed with scheduling the course section if not already scheduled
     if room_type == "Theory" and slot_preference == "1.5 Hour blocks":
