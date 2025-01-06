@@ -62,13 +62,6 @@ def get_available_room(room_type):
 def is_room_available(day, time_slot, room, course_code, section, course_type):
     """
     Check if a room is available for a specific course section at a given time.
-    Args:
-        - day: The day of the week
-        - time_slot: The time slot being considered
-        - room: The room being considered
-        - course_code: The course code
-        - section: The section of the course
-        - course_type: The type of the course ('Theory' or 'Lab')
     """
     for other_course_code in st.session_state.timetable[day]:
         for session in st.session_state.timetable[day].get(other_course_code, []):
@@ -80,8 +73,6 @@ def is_room_available(day, time_slot, room, course_code, section, course_type):
             if session['room'] == room and session['time'] == time_slot:
                 return False  # Room is already occupied at the time
     return True  # Room is available
-
-
 
 # Function to allocate a Lab course (2 consecutive 1.5-hour blocks on a single day)
 def allocate_lab_course(course_code, course_title, section, room_type):
@@ -107,7 +98,6 @@ def allocate_lab_course(course_code, course_title, section, room_type):
                     })
                     break  # Once scheduled, stop and break
             break  # Once scheduled, stop after assigning to one day
-
 
 # Function to allocate Theory course (1.5-hour blocks on two different days)
 def allocate_theory_course(course_code, course_title, section, room_type):
@@ -153,11 +143,6 @@ def allocate_theory_course(course_code, course_title, section, room_type):
                         })
                         break
 
-
-
-
-
-# Function to schedule a course (Theory or Lab)
 # Function to schedule a course (Theory or Lab)
 def schedule_course(course_code, course_title, section, room_type, slot_preference):
     """
@@ -172,9 +157,6 @@ def schedule_course(course_code, course_title, section, room_type, slot_preferen
         allocate_theory_course(course_code, course_title, section, room_type)
     elif room_type == "Lab" and slot_preference == "3 Hour consecutive block":
         allocate_lab_course(course_code, course_title, section, room_type)
-
-
-
 
 # Streamlit User Interface
 
