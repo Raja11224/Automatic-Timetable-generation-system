@@ -110,52 +110,65 @@ def allocate_lab_course(course_code, course_title, section, room_type):
 
 # Function to allocate Theory course (1.5-hour blocks on two different days)
 def allocate_theory_course(course_code, course_title, section, room_type):
-    room = get_available_room(room_type)  # Get an available room for the theory course
-    if room:
-        # Choose exactly two random days for the theory course (two different days)
-        available_days = days_of_week.copy()
-        random.shuffle(available_days)
+    # Step 1: Get an available room for the theory course
+    room = get_available_room(room_type)
+    if not room:
+        return  # If no room is available, exit early
 
-        # Track how many slots we've assigned
-        assigned_slots = 0
-        assigned_days = []  # To track assigned days
+    # Step 2: Choose exactly two different days for the theory course
+    available_days = days_of_week.copy()
+    random.shuffle(available_days)
+
+    assigned_days = []  # To track assigned days
+    assigned_slots = 0  # Counter to track slots assigned
+
+    # Step 3: Assign time slots for the two different days
+    for day in available_days:
+        if assigned_slots >= 2:  # Stop once we have two days scheduled
+            break
         
-        # Assign one 1.5-hour block to two different days
+        # Shuffle available time slots for randomness
+        available_slots_for_day = available_time_slots.copy()
+        random.shuffle(available_slots_for_day)
+
+        # Step 4: Try to find an available time slot on this day
+        for slot_1 in available_slots_for_day:
+            # Check if the room is available at this time
+            if is_room_available(day, slot_1, room, course_code, section, "Theory"):
+                # Schedule the course for this day and slot
+                st.session_state.timetable[day][course_code].append({
+                    'time': slot_1,
+                    'room': room,
+                    'section': section
+                })
+                assigned_days.append(day)  # Add this day to the list of assigned days
+                assigned_slots += 1  # Increment the assigned slots
+                break  # Move to the next day after assigning this slot
+
+    # Step 5: If only one day was assigned, we need to assign the second time slot
+    if assigned_slots == 1:
+        # We need to find another available day for the second time slot
         for day in available_days:
-            if assigned_slots >= 2:  # Stop once two days are assigned
-                break
+            if day not in assigned_days:
+                available_slots_for_day = available_time_slots.copy()
+                random.shuffle(available_slots_for_day)
 
-            # Shuffle the available time slots
-            available_slots_for_day = available_time_slots.copy()
-            random.shuffle(available_slots_for_day)  # Shuffle to ensure random assignment
+                for slot_2 in available_slots_for_day:
+                    # Check if the room is available for the second slot on this day
+                    if is_room_available(day, slot_2, room, course_code, section, "Theory"):
+                        # Schedule the course for this second time slot
+                        st.session_state.timetable[day][course_code].append({
+                            'time': slot_2,
+                            'room': room,
+                            'section': section
+                        })
+                        break  # Break after scheduling the second slot
+                break  # Break after assigning the second day
 
-            # Try to find an available time slot for the first or second 1.5-hour block
-            for slot_1 in available_slots_for_day:
-                # Ensure the slot is available for this day and the course type
-                if is_room_available(day, slot_1, room, course_code, section, "Theory"):
-                    st.session_state.timetable[day][course_code].append({
-                        'time': slot_1,
-                        'room': room,
-                        'section': section  # Add the section information
-                    })
-                    assigned_slots += 1
-                    assigned_days.append(day)  # Record the assigned day
-                    break  # Once assigned to this day, move to the next day
+    # Step 6: If we didn't manage to schedule on both days, we could notify or retry
+    if assigned_slots < 2:
+        st.warning(f"Could not fully schedule Theory course {course_code} (Section {section}) on two different days.")
 
-        # If only one day is assigned, assign the second 1.5-hour block to another day
-        if assigned_slots == 1:
-            for day in available_days:
-                if day not in assigned_days:
-                    available_slots_for_day = available_time_slots.copy()
-                    random.shuffle(available_slots_for_day)
-                    for slot_2 in available_slots_for_day:
-                        if is_room_available(day, slot_2, room, course_code, section, "Theory"):
-                            st.session_state.timetable[day][course_code].append({
-                                'time': slot_2,
-                                'room': room,
-                                'section': section  # Add the section information
-                            })
-                            break
 
 
 
