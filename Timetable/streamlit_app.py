@@ -62,24 +62,16 @@ def get_available_room(room_type):
 def is_room_available(day, time_slot, room, course_code, section, course_type):
     """
     Check if a room is available for a specific course section at a given time.
-    Args:
-        - day: The day of the week
-        - time_slot: The time slot being considered
-        - room: The room being considered
-        - course_code: The course code
-        - section: The section of the course
-        - course_type: The type of the course ('Theory' or 'Lab')
     """
     for other_course_code in st.session_state.timetable[day]:
         for session in st.session_state.timetable[day].get(other_course_code, []):
             # Avoid conflicts for the same course section
-            if other_course_code == course_code and session['section'] == section:
-                continue  # Skip the same section
-
+            if other_course_code == course_code and session['section'] != section:
+                if session['room'] == room and session['time'] == time_slot:
+                    return False  # Room is already occupied at the time
             # Ensure no conflict with Lab and Theory courses for the same time
             if session['room'] == room and session['time'] == time_slot:
                 return False  # Room is already occupied at the time
-
     return True  # Room is available
 
 
@@ -92,22 +84,21 @@ def allocate_lab_course(course_code, course_title, section, room_type):
         available_days = days_of_week.copy()
         random.shuffle(available_days)
 
-        # Iterate over the shuffled days and try to assign the lab to one day
         for day in available_days:
-            # Check for 2 consecutive time slots availability (1.5 hours each)
             for i in range(len(available_time_slots) - 1):  # Ensure 2 consecutive slots
                 slot_1 = available_time_slots[i]
                 slot_2 = available_time_slots[i + 1]
 
-                # If the room is available, assign the 3-hour block
+                # Ensure no overlap with existing lab course sessions for the same course/section
                 if is_room_available(day, f"{slot_1} - {slot_2}", room, course_code, section, "Lab"):
                     st.session_state.timetable[day][course_code].append({
                         'time': f"{slot_1} - {slot_2}",
                         'room': room,
-                        'section': section  # Add the section information
+                        'section': section
                     })
-                    break  # Once scheduled, stop and break
-            break  # Once scheduled, stop after assigning to one day
+                    break  # Stop when one section is allocated
+            break  # Stop after assigning the lab course to one day
+
 
 
 # Function to allocate Theory course (1.5-hour blocks on two different days)
@@ -118,27 +109,23 @@ def allocate_theory_course(course_code, course_title, section, room_type):
         available_days = days_of_week.copy()
         random.shuffle(available_days)
 
-        # Track how many slots we've assigned
         assigned_slots = 0
         for day in available_days:
             if assigned_slots >= 2:  # We can only assign two different days
                 break
 
-            # Try to find an available time slot for the first or second 1.5-hour block
             for i in range(len(available_time_slots)):
                 slot_1 = available_time_slots[i]
 
-                # Ensure no consecutive scheduling for Theory courses
                 if is_room_available(day, slot_1, room, course_code, section, "Theory"):
                     st.session_state.timetable[day][course_code].append({
                         'time': slot_1,
                         'room': room,
-                        'section': section  # Add the section information
+                        'section': section
                     })
                     assigned_slots += 1
-                    break  # Once assigned to this day, move to the next day
+                    break
 
-        # Ensure the second 1.5-hour block is assigned to a different day
         if assigned_slots == 1:
             for day in available_days:
                 if day not in st.session_state.timetable:
@@ -150,9 +137,10 @@ def allocate_theory_course(course_code, course_title, section, room_type):
                         st.session_state.timetable[day][course_code].append({
                             'time': slot_2,
                             'room': room,
-                            'section': section  # Add the section information
+                            'section': section
                         })
                         break
+
 
 
 # Function to schedule a course (Theory or Lab)
@@ -161,7 +149,7 @@ def schedule_course(course_code, course_title, section, room_type, slot_preferen
     Assign time and room to a course section based on the course type.
     """
     # Check if the course section has already been scheduled
-    if any(course['course_code'] == course_code and course['section'] == section and 'scheduled' in course for course in st.session_state.courses):
+    if any(course['course_code'] == course_code and course['section'] == section for course in st.session_state.courses):
         return  # Skip allocation if already scheduled
 
     # Proceed with scheduling the course section if not already scheduled
@@ -169,11 +157,6 @@ def schedule_course(course_code, course_title, section, room_type, slot_preferen
         allocate_theory_course(course_code, course_title, section, room_type)
     elif room_type == "Lab" and slot_preference == "3 Hour consecutive block":
         allocate_lab_course(course_code, course_title, section, room_type)
-    
-    # Mark the course as scheduled by adding a 'scheduled' key
-    for course in st.session_state.courses:
-        if course['course_code'] == course_code and course['section'] == section:
-            course['scheduled'] = True
 
 
 # Streamlit User Interface
