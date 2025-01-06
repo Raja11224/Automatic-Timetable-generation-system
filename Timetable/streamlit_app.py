@@ -79,7 +79,7 @@ def is_room_available(day, time_slot, room, course_code, section, course_type):
                     if session['time'] == time_slot and session['room'] == room:
                         return False  # Room is already occupied by another section of the same course
                     # Ensure no consecutive time slots for the same course section
-                    if i < len(available_time_slots) - 1:
+                    for i in range(len(available_time_slots) - 1):  # Loop should be over available time slots
                         if available_time_slots[i + 1] == time_slot:
                             return False  # Consecutive blocks are not allowed for the same course on the same day
                 elif course_type == "Lab":
