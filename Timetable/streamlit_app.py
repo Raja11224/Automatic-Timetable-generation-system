@@ -23,6 +23,15 @@ if 'rooms' not in st.session_state:
 days_of_week = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
 available_time_slots = ["8:00 - 9:30", "9:30 - 11:00", "11:00 - 12:30", "12:30 - 2:00", "2:00 - 3:30", "3:30 - 5:00", "5:00 - 6:30"]
 
+# Function to check if a room is available at a specific time slot
+def is_room_available(day, slot, room, course_code, section):
+    # Check if the room is already booked at the given time slot and day
+    for scheduled_course in st.session_state.timetable[day].get(course_code, []):
+        if scheduled_course['time'] == slot and scheduled_course['room'] == room:
+            # Room is already booked for this course at this time slot
+            return False
+    return True
+
 # Function to get timetable
 def get_timetable():
     timetable_data = []
