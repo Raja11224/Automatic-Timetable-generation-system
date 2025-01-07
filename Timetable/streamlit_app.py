@@ -20,7 +20,7 @@ if 'rooms' not in st.session_state:
     st.session_state.rooms = []
 
 # Sample days of the week and time slots
-days_of_week = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+days_of_week = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday","Saturday"]
 available_time_slots = ["8:00 - 9:30", "9:30 - 11:00", "11:00 - 12:30", "12:30 - 2:00", "2:00 - 3:30", "3:30 - 5:00", "5:00 - 6:30"]
 
 # Function to add a course
@@ -57,6 +57,7 @@ def is_room_available(day, time_slot, room, course_code, section):
     return True
 
 # Function to display the timetable in a readable weekly format with improved styling
+# Function to display the timetable in a readable weekly format with course titles
 def display_timetable():
     timetable_data = []
     for day in days_of_week:
@@ -64,6 +65,7 @@ def display_timetable():
             for session in sessions:
                 timetable_data.append({
                     'Course Code': course_code,
+                    'Course Title': next(course['course_title'] for course in st.session_state.courses if course['course_code'] == course_code),  # Find the course title
                     'Day': day,
                     'Time': session['time'],
                     'Room': session['room'],
@@ -73,7 +75,7 @@ def display_timetable():
     # Display the timetable as a dataframe
     if timetable_data:
         timetable_df = pd.DataFrame(timetable_data)
-        timetable_df = timetable_df[['Day', 'Course Code', 'Section', 'Time', 'Room']]
+        timetable_df = timetable_df[['Day', 'Course Code', 'Course Title', 'Section', 'Time', 'Room']]
         
         # Add styling to improve the visual appeal
         styled_df = timetable_df.style \
@@ -89,6 +91,7 @@ def display_timetable():
         st.dataframe(styled_df)
     else:
         st.warning("No timetable generated yet.")
+
 
 def generate_timetable():
     # Reset the timetable before starting
