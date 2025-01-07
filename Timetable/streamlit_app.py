@@ -56,75 +56,44 @@ def is_room_available(day, time_slot, room, course_code, section):
                 return False
     return True
 
-# Function to display the timetable in the requested format
-def display_timetable_transformed():
+# Function to display the timetable in a readable weekly format with improved styling
+def display_timetable():
     timetable_data = []
-
-    # Loop through each course and its sections
-    for course in st.session_state.courses:
-        course_code = course['course_code']
-        course_title = course['course_title']
-        section = course['section']
-
-        # Create a dictionary for each course with time slots for each day
-        course_row = {
-            'Course Code': course_code,
-            'Course Title': course_title,
-            'Sec.': section,
-            'Mon': '',
-            'Tue': '',
-            'Wed': '',
-            'Thu': '',
-            'Fri': '',
-            'Sat': ''
-        }
-
-        # For each day, check if this course has a time slot
-        for day in days_of_week:
-            for session in st.session_state.timetable[day].get(course_code, []):
-                if session['section'] == section:
-                    course_row[day[:3]] = session['time']  # Store the time for the respective day (abbreviated day names)
-
-        # Add the formatted course row to the timetable data
-        timetable_data.append(course_row)
-
-    # Display the formatted timetable
+    for day in days_of_week:
+        for course_code, sessions in st.session_state.timetable[day].items():
+            for session in sessions:
+                timetable_data.append({
+                    'Course Code': course_code,
+                    'Course Title': next(course['course_title'] for course in st.session_state.courses if course['course_code'] == course_code),
+                    'Day': day,
+                    'Time': session['time'],
+                    'Room': session['room'],
+                    'Section': session['section']
+                })
+    
+    # Display the timetable as a dataframe
     if timetable_data:
         timetable_df = pd.DataFrame(timetable_data)
-        st.subheader("Transformed Timetable (Section-wise)")
+        timetable_df = timetable_df[['Day', 'Course Code', 'Course Title', 'Section', 'Time', 'Room']]
         
-        # Display the table
+        # Add styling to improve the visual appeal
         styled_df = timetable_df.style \
-            .set_table_styles([{
-                'selector': 'thead th', 
-                'props': [('background-color', '#4CAF50'), ('color', 'white'), ('font-weight', 'bold')]
-            }, {
-                'selector': 'tbody tr:nth-child(odd)', 
-                'props': [('background-color', '#f2f2f2')]
-            }, {
-                'selector': 'tbody tr:nth-child(even)', 
-                'props': [('background-color', '#ffffff')]
-            }, {
-                'selector': 'td', 
-                'props': [('padding', '10px'), ('text-align', 'center')]
-            }, {
-                'selector': 'table', 
-                'props': [('border-collapse', 'collapse'), ('width', '100%')]
-            }]) \
+            .set_table_styles([{'selector': 'thead th', 'props': [('background-color', '#4CAF50'), ('color', 'white'), ('font-weight', 'bold')]},
+                               {'selector': 'tbody tr:nth-child(odd)', 'props': [('background-color', '#f2f2f2')]},
+                               {'selector': 'tbody tr:nth-child(even)', 'props': [('background-color', '#ffffff')]},
+                               {'selector': 'td', 'props': [('padding', '10px'), ('text-align', 'center')]},
+                               {'selector': 'table', 'props': [('border-collapse', 'collapse'), ('width', '100%')]}]) \
             .hide(axis="index")
         
         st.dataframe(styled_df)
     else:
         st.warning("No timetable generated yet.")
 
-# Function to generate timetable
 def generate_timetable():
     """
     Try to generate the timetable by scheduling all the courses.
     """
-    # Reset the timetable before starting
-    st.session_state.timetable = defaultdict(lambda: defaultdict(list))
-
+    # Generate timetable for newly added courses and append them to the existing timetable
     for course in st.session_state.courses:
         room_type = course['room_type']
         section = course['section']
@@ -136,11 +105,13 @@ def generate_timetable():
                 st.warning(f"Scheduling failed for {course_code} Section {section}.")
                 return
 
-    st.success("Timetable generated successfully!")
-    display_timetable_transformed()
+    st.success("Timetable updated successfully!")
+    display_timetable()
 
-# Function to allocate course (Theory or Lab) to a time slot and room
 def allocate_course(course_code, course_title, section, room_type):
+    """
+    Allocate a course (Theory or Lab) to a time slot and room.
+    """
     available_time_slots = ["8:00 - 9:30", "9:30 - 11:00", "11:00 - 12:30", "12:30 - 2:00", "2:00 - 3:30", "3:30 - 5:00", "5:00 - 6:30"]
     days = random.sample(days_of_week, 2)  # Pick 2 random days for the course
     selected_slots = random.sample(available_time_slots, 2)  # Pick 2 random slots from available slots
@@ -184,7 +155,6 @@ def allocate_course(course_code, course_title, section, room_type):
 
     st.success(f"Course {course_code} successfully scheduled on {', '.join([f'{day} at {slot}' for day, slot, room in assigned_days])}.")
     return True
-
 
 # Streamlit User Interface
 st.title("Timetable Generator")
@@ -242,6 +212,6 @@ if st.session_state.rooms:
     rooms_df = pd.DataFrame(st.session_state.rooms)
     st.dataframe(rooms_df)
 
-# Button to Generate Timetable
-if st.button("Generate Timetable"):
+# Button to Update Timetable
+if st.button("Update Timetable"):
     generate_timetable()
