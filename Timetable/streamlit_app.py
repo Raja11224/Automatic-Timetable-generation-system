@@ -189,9 +189,9 @@ def allocate_theory_course(course_code, course_title, section, room_type):
                 })
                 assigned_slots.append(slot)
                 assigned_rooms.append(room)
-                break  # Only assign one slot per day
+                break  # Only assign one slot per day (ensures no multiple slots on same day)
 
-    # If we assigned exactly 2 slots to 2 distinct days, return success
+    # If we assigned exactly 1 slot to each of the 2 distinct days, return success
     if len(assigned_slots) == 2 and len(assigned_rooms) == 2:
         st.success(f"Theory course {course_code} successfully scheduled on {selected_days[0]} and {selected_days[1]}!")
         return True
