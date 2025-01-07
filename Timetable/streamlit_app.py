@@ -283,7 +283,10 @@ if st.session_state.rooms:
 
 # Button to Generate Timetable
 if st.button("Generate Timetable"):
-      generate_timetable()
+    generate_timetable()
+    timetable_data = get_timetable()
+    timetable_df = pd.DataFrame(timetable_data)
+    st.dataframe(timetable_df)
 def display_timetable():
     """
     Display the generated timetable.
