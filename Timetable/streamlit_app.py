@@ -192,23 +192,16 @@ def generate_timetable():
     display_timetable()
 
 def allocate_theory_course(course_code, course_title, section, room_type):
-    # List of all available time slots
     available_time_slots = ["8:00 - 9:30", "9:30 - 11:00", "11:00 - 12:30", "12:30 - 2:00", "2:00 - 3:30", "3:30 - 5:00", "5:00 - 6:30"]
+    days = random.sample(days_of_week, 2)
+    selected_slots = random.sample(available_time_slots, 2)
     
-    # Ensure we only assign one time slot per day, and we have only 2 days for each section
-    days = random.sample(days_of_week, 2)  # Pick two random days for the course
-    
-    # Ensure we only assign one slot per day
-    selected_slots = random.sample(available_time_slots, 2)  # Pick two random time slots
-    
-    assigned_days = []  # To store the selected days and slots
+    assigned_days = []
     for i, day in enumerate(days):
         selected_slot = selected_slots[i]
-        room = get_available_room(room_type)  # Fetch an available room
+        room = get_available_room(room_type)
         
-        # Check if the room is available at the selected time for that day
         if is_room_available(day, selected_slot, room, course_code, section):
-            # Assign the course to the timetable on the selected day and time
             st.session_state.timetable[day][course_code].append({
                 'time': selected_slot,
                 'room': room,
@@ -220,9 +213,9 @@ def allocate_theory_course(course_code, course_title, section, room_type):
             st.warning(f"Could not assign {course_code} Section {section} to {day} at {selected_slot}. Trying again.")
             return False
 
-    # Add a success message indicating the assignment
     st.success(f"Theory course {course_code} successfully scheduled on {', '.join([f'{day} at {slot}' for day, slot, room in assigned_days])}.")
     return True
+
 
 
 
