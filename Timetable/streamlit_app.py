@@ -155,6 +155,13 @@ def generate_timetable():
     else:
         st.warning("Failed to generate timetable. Trying a different configuration.")
 
+def update_timetable():
+    # Retain previous timetable and only add the new courses
+    if backtrack_schedule(st.session_state.courses[len(st.session_state.timetable):]):
+        st.success("Timetable updated successfully!")
+    else:
+        st.warning("Failed to update timetable. Try a different configuration.")
+
 # Streamlit User Interface
 
 st.title("Timetable Generator")
@@ -212,14 +219,23 @@ if st.session_state.rooms:
     rooms_df = pd.DataFrame(st.session_state.rooms)
     st.dataframe(rooms_df)
 
-# Button to Generate Timetable
-if st.button("Generate Timetable"):
-    generate_timetable()
-    
-    timetable_data = get_timetable()
-    timetable_df = pd.DataFrame(timetable_data)
-    st.dataframe(timetable_df)
-    
-    st.session_state.generated = True
-    st.session_state.locked = True
-    st.success("Timetable generated and locked!")
+# Buttons to Generate and Update Timetable
+col1, col2 = st.columns(2)
+with col1:
+    if st.button("Generate Timetable"):
+        generate_timetable()
+        timetable_data = get_timetable()
+        timetable_df = pd.DataFrame(timetable_data)
+        st.dataframe(timetable_df)
+        st.session_state.generated = True
+        st.session_state.locked = True
+        st.success("Timetable generated and locked!")
+
+with col2:
+    if st.button("Update Timetable"):
+        update_timetable()
+        timetable_data = get_timetable()
+        timetable_df = pd.DataFrame(timetable_data)
+        st.dataframe(timetable_df)
+        st.session_state.locked = True
+        st.success("Timetable updated successfully!")
