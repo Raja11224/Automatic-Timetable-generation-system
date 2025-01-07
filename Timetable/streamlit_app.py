@@ -62,7 +62,7 @@ def get_available_room(room_type):
         return None
 
 
-def is_room_available(day, time_slot, room, course_code, section, course_type):
+def is_room_available(day, time_slot, room, course_code, section):
     """
     Check if a room is available for a specific course section at a given time.
     """
@@ -78,85 +78,47 @@ def is_room_available(day, time_slot, room, course_code, section, course_type):
     return True  # Room is available
 
 
+# Function to backtrack and allocate rooms and slots
+def backtrack_schedule(courses, idx=0):
+    if idx == len(courses):  # All courses have been scheduled
+        return True
+    
+    course = courses[idx]
+    room_type = course['room_type']
+    section = course['section']
+    room = get_available_room(room_type)  # Get an available room for this course
 
-# Function to allocate a Lab course (2 consecutive 1.5-hour blocks on a single day)
-def allocate_lab_course(course_code, course_title, section, room_type):
-    room = get_available_room(room_type)  # Get an available room for the lab course
     if room:
-        # Choose a random day for the lab (only one day)
+        # Try assigning time slots for this course
         available_days = days_of_week.copy()
         random.shuffle(available_days)
 
         for day in available_days:
-            for i in range(len(available_time_slots) - 1):  # Ensure 2 consecutive slots
-                slot_1 = available_time_slots[i]
-                slot_2 = available_time_slots[i + 1]
+            available_slots = available_time_slots.copy()
+            random.shuffle(available_slots)
 
-                # Debugging log: Check if room is available for this slot
-                if is_room_available(day, f"{slot_1} - {slot_2}", room, course_code, section, "Lab"):
-                    st.session_state.timetable[day][course_code].append({
-                        'time': f"{slot_1} - {slot_2}",
+            for slot in available_slots:
+                # Check if the room is available
+                if is_room_available(day, slot, room, course['course_code'], section):
+                    # Assign this slot
+                    st.session_state.timetable[day][course['course_code']].append({
+                        'time': slot,
                         'room': room,
                         'section': section
                     })
-                    st.success(f"Lab Course {course_code} ({section}) scheduled on {day} at {slot_1} - {slot_2}")
-                    break  # Stop when one section is allocated
-            break  # Stop after assigning the lab course to one day
-        else:
-            st.warning(f"Lab Course {course_code} ({section}) could not be scheduled.")
 
+                    # Move to the next course
+                    if backtrack_schedule(courses, idx + 1):
+                        return True
 
-
-
-# Function to allocate Theory course (1.5-hour blocks on two different days)
-def allocate_theory_course(course_code, course_title, section, room_type):
-    room = get_available_room(room_type)  # Get an available room for the theory course
-    if room:
-        # Choose two random days for the theory course (two different days)
-        available_days = days_of_week.copy()
-        random.shuffle(available_days)
-
-        # Track how many slots we've assigned
-        assigned_slots = 0
-        assigned_days = []  # To track assigned days
-        
-        for day in available_days:
-            if assigned_slots >= 2:  # Stop once two days are assigned
-                break
-
-            # Shuffle the available time slots
-            available_slots = available_time_slots.copy()
-            random.shuffle(available_slots)  # Shuffle to ensure random assignment
-
-            # Try to find an available time slot for the first or second 1.5-hour block
-            for slot_1 in available_slots:
-                # Ensure no consecutive scheduling for Theory courses
-                if is_room_available(day, slot_1, room, course_code, section, "Theory"):
-                    st.session_state.timetable[day][course_code].append({
-                        'time': slot_1,
+                    # If not successful, undo the assignment and try next
+                    st.session_state.timetable[day][course['course_code']].remove({
+                        'time': slot,
                         'room': room,
-                        'section': section  # Add the section information
+                        'section': section
                     })
-                    assigned_slots += 1
-                    assigned_days.append(day)  # Record the assigned day
-                    break  # Once assigned to this day, move to the next day
-
-        # Ensure the second 1.5-hour block is assigned to a different day (not consecutive)
-        if assigned_slots == 1:
-            for day in available_days:
-                if day not in assigned_days:
-                    available_slots = available_time_slots.copy()
-                    random.shuffle(available_slots)
-                    for slot_2 in available_slots:
-                        if is_room_available(day, slot_2, room, course_code, section, "Theory"):
-                            st.session_state.timetable[day][course_code].append({
-                                'time': slot_2,
-                                'room': room,
-                                'section': section  # Add the section information
-                            })
-                            break
-
-
+        
+    return False
 
 
 # Function to schedule a course (Theory or Lab)
@@ -179,8 +141,11 @@ def schedule_course(course_code, course_title, section, room_type, slot_preferen
     elif room_type == "Lab" and slot_preference == "3 Hour consecutive block":
         allocate_lab_course(course_code, course_title, section, room_type)
 
-
-
+def generate_timetable():
+    if backtrack_schedule(st.session_state.courses):
+        st.success("Timetable generated successfully!")
+    else:
+        st.warning("Failed to generate timetable. Trying a different configuration.")
 
 # Streamlit User Interface
 
@@ -241,8 +206,7 @@ if st.session_state.rooms:
 
 # Button to Generate Timetable
 if st.button("Generate Timetable"):
-    for course in st.session_state.courses:
-        schedule_course(course['course_code'], course['course_title'], course['section'], course['room_type'], course['slot_preference'])
+    generate_timetable()
     
     timetable_data = get_timetable()
     timetable_df = pd.DataFrame(timetable_data)
@@ -251,18 +215,3 @@ if st.button("Generate Timetable"):
     st.session_state.generated = True
     st.session_state.locked = True
     st.success("Timetable generated and locked!")
-
-# Button to Update Timetable
-if st.session_state.generated and st.session_state.locked:
-    st.header("Update Timetable")
-    
-    if st.button("Update Timetable"):
-        # Only schedule newly added courses
-        for course in st.session_state.courses:
-            if course['course_code'] not in [c['course_code'] for c in st.session_state.courses]:
-                schedule_course(course['course_code'], course['course_title'], course['section'], course['room_type'], course['slot_preference'])
-        
-        timetable_data = get_timetable()
-        timetable_df = pd.DataFrame(timetable_data)
-        st.dataframe(timetable_df)
-        st.success("Timetable updated successfully!")
