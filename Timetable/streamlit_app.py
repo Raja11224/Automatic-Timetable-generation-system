@@ -165,6 +165,7 @@ def generate_timetable():
                 return
 
     st.success("Timetable generated successfully!")
+    display_timetable()
   
 
 def allocate_theory_course(course_code, course_title, section, room_type):
@@ -282,11 +283,15 @@ if st.session_state.rooms:
 
 # Button to Generate Timetable
 if st.button("Generate Timetable"):
-    generate_timetable()
-    
+      generate_timetable()
+def display_timetable():
+    """
+    Display the generated timetable.
+    """
     timetable_data = get_timetable()
     timetable_df = pd.DataFrame(timetable_data)
     st.dataframe(timetable_df)
+
     
     st.session_state.generated = True
     st.session_state.locked = True
