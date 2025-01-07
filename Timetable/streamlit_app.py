@@ -161,6 +161,7 @@ def allocate_theory_course(course_code, course_title, section, room_type):
     
     # Only select two distinct days for the course
     selected_days = available_days[:2]
+    st.write(f"Selected Days for {course_code} Section {section}: {selected_days}")  # Debugging line
 
     # Shuffle and assign one slot to each day
     available_slots = available_time_slots.copy()
@@ -206,8 +207,6 @@ def allocate_theory_course(course_code, course_title, section, room_type):
     else:
         st.warning(f"Failed to schedule Theory course {course_code} properly.")
         return False
-
-
 
 
 
