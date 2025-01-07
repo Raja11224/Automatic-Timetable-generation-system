@@ -169,8 +169,16 @@ def allocate_theory_course(course_code, course_title, section, room_type):
     assigned_slots = []  # Will hold the time slots assigned to the two days
     assigned_rooms = []  # Will hold the rooms assigned for the course
     
+    # Dictionary to track already assigned slots for a course
+    assigned_slots_per_day = defaultdict(int)  # Keeps count of slots per day for the course
+
     # For each selected day, assign one slot
     for day in selected_days:
+        # Ensure only one slot is assigned per day
+        if assigned_slots_per_day[day] > 0:
+            st.warning(f"Course {course_code} has already been assigned a slot on {day}.")
+            continue  # Skip this day if it's already assigned
+
         # Pick one slot from the available shuffled slots list
         slot = available_slots.pop()  # Pop one slot randomly
 
@@ -194,6 +202,7 @@ def allocate_theory_course(course_code, course_title, section, room_type):
             })
             assigned_slots.append(slot)
             assigned_rooms.append(room)
+            assigned_slots_per_day[day] += 1  # Track the slot assigned to this day
         else:
             st.warning(f"No available room for {course_code} on {day} at {slot}.")
             return False  # If no room is available, fail the allocation
@@ -205,6 +214,7 @@ def allocate_theory_course(course_code, course_title, section, room_type):
     else:
         st.warning(f"Failed to schedule Theory course {course_code} properly.")
         return False
+
 
 
 # Streamlit User Interface
