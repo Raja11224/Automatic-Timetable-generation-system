@@ -3,7 +3,7 @@ import random
 import pandas as pd
 from collections import defaultdict
 
-# Initialize session state for courses, timetable, rooms, etc.
+# Initialize session state
 if 'courses' not in st.session_state:
     st.session_state.courses = []
 
@@ -207,5 +207,6 @@ if st.session_state.rooms:
     st.dataframe(rooms_df)
 
 # Button to Update Timetable
-if st.button("Update Timetable"):
-    generate_timetable()
+if st.session_state.courses:
+    if st.button("Update Timetable"):
+        generate_timetable()
