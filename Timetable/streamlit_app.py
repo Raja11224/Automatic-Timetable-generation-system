@@ -226,9 +226,11 @@ with col1:
         generate_timetable()
         timetable_data = get_timetable()
         
-        # Format the timetable to fit the screen better
-        timetable_df = pd.DataFrame(timetable_data)
-        st.dataframe(timetable_df, width=2000, height=800)  # Increased size
+        # Format the timetable to display days on top and slots vertically
+        timetable_df = pd.DataFrame(timetable_data).transpose()
+        timetable_df.columns = days_of_week  # Set columns as the days of the week
+        
+        st.dataframe(timetable_df, width=1200, height=800)  # Increase vertical height
         
         st.session_state.generated = True
         st.session_state.locked = True
@@ -239,9 +241,11 @@ with col2:
         update_timetable()
         timetable_data = get_timetable()
         
-        # Format the timetable to fit the screen better
-        timetable_df = pd.DataFrame(timetable_data)
-        st.dataframe(timetable_df, width=2000, height=800)  # Increased size
+        # Format the timetable to display days on top and slots vertically
+        timetable_df = pd.DataFrame(timetable_data).transpose()
+        timetable_df.columns = days_of_week  # Set columns as the days of the week
+        
+        st.dataframe(timetable_df, width=1200, height=800)  # Increase vertical height
         
         st.session_state.locked = True
         st.success("Timetable updated successfully!")
