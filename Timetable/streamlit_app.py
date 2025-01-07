@@ -172,10 +172,10 @@ def allocate_theory_course(course_code, course_title, section, room_type):
 
     # For each selected day, assign one slot
     for day in selected_days:
-        # Pick one available slot from the shuffled list
         if available_slots:
-            slot = available_slots.pop()  # Pop one slot randomly
-            
+            # Pop one slot randomly from the available slots list
+            slot = available_slots.pop()
+
             # Ensure that no multiple slots are assigned for the same day
             if slot in assigned_days_slots[day]:
                 continue  # Skip if slot is already assigned to this day
@@ -216,14 +216,6 @@ def allocate_theory_course(course_code, course_title, section, room_type):
         st.warning(f"Failed to schedule Theory course {course_code} properly.")
         return False
 
-
-    # If exactly two slots and two rooms have been successfully assigned to two different days
-    if len(assigned_slots) == 2 and len(assigned_rooms) == 2:
-        st.success(f"Theory course {course_code} successfully scheduled on {selected_days[0]} and {selected_days[1]}.")
-        return True
-    else:
-        st.warning(f"Failed to schedule Theory course {course_code} properly.")
-        return False
 
 
 
