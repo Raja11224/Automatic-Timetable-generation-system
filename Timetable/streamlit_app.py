@@ -165,7 +165,7 @@ def generate_timetable():
                 return
 
     st.success("Timetable generated successfully!")
-    display_timetable()
+  
 
 def allocate_theory_course(course_code, course_title, section, room_type):
     # Shuffle and select two random days from the available days of the week
