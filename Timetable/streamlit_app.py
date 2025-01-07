@@ -118,14 +118,15 @@ def allocate_course(course_code, course_title, section, room_type):
     Allocate a course (Theory or Lab) to a time slot and room.
     """
     available_time_slots = ["8:00 - 9:30", "9:30 - 11:00", "11:00 - 12:30", "12:30 - 2:00", "2:00 - 3:30", "3:30 - 5:00", "5:00 - 6:30"]
-    days = random.sample(days_of_week, 2)
-    selected_slots = random.sample(available_time_slots, 2)
+    days = random.sample(days_of_week, 2)  # Pick 2 random days for the course
+    selected_slots = random.sample(available_time_slots, 2)  # Pick 2 random slots from available slots
     
     assigned_days = []
     for i, day in enumerate(days):
         selected_slot = selected_slots[i]
-        room = get_available_room(room_type)
+        room = get_available_room(room_type)  # Get an available room for the course type
         
+        # Ensure the room is available for the selected time
         if is_room_available(day, selected_slot, room, course_code, section):
             st.session_state.timetable[day][course_code].append({
                 'time': selected_slot,
@@ -135,11 +136,31 @@ def allocate_course(course_code, course_title, section, room_type):
             assigned_days.append((day, selected_slot, room))
             st.info(f"Assigned {course_code} Section {section} to {day} at {selected_slot} in {room}.")
         else:
-            st.warning(f"Could not assign {course_code} Section {section} to {day} at {selected_slot}. Trying again.")
-            return False
+            st.warning(f"Could not assign {course_code} Section {section} to {day} at {selected_slot}. Retrying assignment.")
+            # Try a different room or time slot
+            retry_success = False
+            for attempt in range(3):  # Try 3 times for conflict resolution
+                retry_room = get_available_room(room_type)
+                if is_room_available(day, selected_slot, retry_room, course_code, section):
+                    st.info(f"Retrying: Assigned {course_code} Section {section} to {day} at {selected_slot} in {retry_room}.")
+                    st.session_state.timetable[day][course_code].append({
+                        'time': selected_slot,
+                        'room': retry_room,
+                        'section': section
+                    })
+                    assigned_days.append((day, selected_slot, retry_room))
+                    retry_success = True
+                    break
+                else:
+                    st.warning(f"Retry attempt {attempt+1}: Could not assign {course_code} Section {section} to {day} at {selected_slot}.")
+            
+            if not retry_success:
+                st.error(f"Scheduling failed for {course_code} Section {section} after retries.")
+                return False
 
     st.success(f"Course {course_code} successfully scheduled on {', '.join([f'{day} at {slot}' for day, slot, room in assigned_days])}.")
     return True
+
 
 def allocate_theory_course(course_code, course_title, section, room_type):
     available_time_slots = ["8:00 - 9:30", "9:30 - 11:00", "11:00 - 12:30", "12:30 - 2:00", "2:00 - 3:30", "3:30 - 5:00", "5:00 - 6:30"]
