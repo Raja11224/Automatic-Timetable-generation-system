@@ -154,6 +154,37 @@ def generate_timetable():
         st.success("Timetable generated successfully!")
     else:
         st.warning("Failed to generate timetable. Trying a different configuration.")
+def allocate_theory_course(course_code, course_title, section, room_type):
+    available_days = days_of_week.copy()
+    random.shuffle(available_days)
+    
+    # Try to assign two different days for 1.5-hour blocks
+    selected_days = available_days[:2]  # Pick two distinct days
+
+    available_slots = available_time_slots.copy()
+    random.shuffle(available_slots)
+
+    # Attempt to assign a time slot to each selected day
+    assigned_slots = []  # Will hold the time slots assigned to the two days
+    for day in selected_days:
+        for slot in available_slots:
+            # Check if slot is available on the day for this course type
+            if is_room_available(day, slot, room, course_code, section):
+                assigned_slots.append(slot)
+                st.session_state.timetable[day][course_code].append({
+                    'time': slot,
+                    'room': room,
+                    'section': section
+                })
+                break  # We need only one slot per day
+    
+    if len(assigned_slots) == 2:  # Ensure both slots are assigned to different days
+        st.success(f"Theory course {course_code} successfully scheduled!")
+        return True
+    else:
+        st.warning(f"Failed to schedule Theory course {course_code}.")
+        return False
+
 
 # Streamlit User Interface
 
