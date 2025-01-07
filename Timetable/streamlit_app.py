@@ -94,19 +94,52 @@ def display_timetable():
 
 
 def generate_timetable():
+    """
+    Try to generate the timetable by scheduling all the courses.
+    """
     # Reset the timetable before starting
     st.session_state.timetable = defaultdict(lambda: defaultdict(list))
 
     for course in st.session_state.courses:
         room_type = course['room_type']
         section = course['section']
-        if room_type == "Theory":
-            if not allocate_theory_course(course['course_code'], course['course_title'], section, room_type):
-                st.warning(f"Scheduling failed for {course['course_code']} Section {section}.")
+        course_code = course['course_code']
+        course_title = course['course_title']
+        
+        if room_type == "Theory" or room_type == "Lab":  # This includes both PF and DLD courses
+            if not allocate_course(course_code, course_title, section, room_type):
+                st.warning(f"Scheduling failed for {course_code} Section {section}.")
                 return
 
     st.success("Timetable generated successfully!")
     display_timetable()
+def allocate_course(course_code, course_title, section, room_type):
+    """
+    Allocate a course (Theory or Lab) to a time slot and room.
+    """
+    available_time_slots = ["8:00 - 9:30", "9:30 - 11:00", "11:00 - 12:30", "12:30 - 2:00", "2:00 - 3:30", "3:30 - 5:00", "5:00 - 6:30"]
+    days = random.sample(days_of_week, 2)
+    selected_slots = random.sample(available_time_slots, 2)
+    
+    assigned_days = []
+    for i, day in enumerate(days):
+        selected_slot = selected_slots[i]
+        room = get_available_room(room_type)
+        
+        if is_room_available(day, selected_slot, room, course_code, section):
+            st.session_state.timetable[day][course_code].append({
+                'time': selected_slot,
+                'room': room,
+                'section': section
+            })
+            assigned_days.append((day, selected_slot, room))
+            st.info(f"Assigned {course_code} Section {section} to {day} at {selected_slot} in {room}.")
+        else:
+            st.warning(f"Could not assign {course_code} Section {section} to {day} at {selected_slot}. Trying again.")
+            return False
+
+    st.success(f"Course {course_code} successfully scheduled on {', '.join([f'{day} at {slot}' for day, slot, room in assigned_days])}.")
+    return True
 
 def allocate_theory_course(course_code, course_title, section, room_type):
     available_time_slots = ["8:00 - 9:30", "9:30 - 11:00", "11:00 - 12:30", "12:30 - 2:00", "2:00 - 3:30", "3:30 - 5:00", "5:00 - 6:30"]
