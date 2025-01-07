@@ -168,20 +168,20 @@ def allocate_lab_course(course_code, course_title, section):
     selected_day = random.choice(days_of_week)
     
     # Try to find two consecutive time slots on the selected day
-    for i, time_slot in enumerate(available_time_slots[:-1]):  # Loop through the slots except the last one
-        # Get the next slot (consecutive slot)
-        next_slot = available_time_slots[i + 1]
+    for i in range(len(available_time_slots) - 1):  # Loop through slots except the last one
+        time_slot = available_time_slots[i]
+        next_slot = available_time_slots[i + 1]  # The next consecutive slot
         
-        # Select a lab room
+        # Get a lab room
         room = get_available_room("Lab")  # Lab rooms only
         
-        # Check if both consecutive time slots are available for this lab course
+        # Ensure the room is available for both consecutive slots on the same day
         if is_room_available(selected_day, time_slot, room, course_code, section) and \
            is_room_available(selected_day, next_slot, room, course_code, section):
             
-            # Both slots are available, so assign them
+            # Assign the lab course to the selected day and both consecutive slots
             st.session_state.timetable[selected_day][course_code].append({
-                'time': f"{time_slot} and {next_slot}",  # Both consecutive time slots
+                'time': f"{time_slot} and {next_slot}",
                 'room': room,
                 'section': section
             })
@@ -189,9 +189,10 @@ def allocate_lab_course(course_code, course_title, section):
             st.info(f"Lab {course_code} Section {section} scheduled on {selected_day} at {time_slot} and {next_slot} in {room}.")
             return True
     
-    # If no consecutive slots are found, show a warning
+    # If no consecutive time slots are available, show a warning
     st.warning(f"Could not find consecutive time slots for Lab {course_code} Section {section} on {selected_day}.")
     return False
+
 
 
 # Streamlit User Interface
