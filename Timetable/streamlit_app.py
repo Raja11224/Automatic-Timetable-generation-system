@@ -150,20 +150,33 @@ def schedule_course(course_code, course_title, section, room_type, slot_preferen
         allocate_lab_course(course_code, course_title, section, room_type)
 
 def generate_timetable():
-    if backtrack_schedule(st.session_state.courses):
-        st.success("Timetable generated successfully!")
-    else:
-        st.warning("Failed to generate timetable. Trying a different configuration.")
+    """
+    Try to generate the timetable by scheduling all the courses.
+    """
+    # Reset the timetable before starting
+    st.session_state.timetable = defaultdict(lambda: defaultdict(list))
+
+    for course in st.session_state.courses:
+        room_type = course['room_type']
+        section = course['section']
+        if room_type == "Theory":
+            if not allocate_theory_course(course['course_code'], course['course_title'], section, room_type):
+                st.warning(f"Scheduling failed for {course['course_code']} Section {section}.")
+                return
+
+    st.success("Timetable generated successfully!")
+    display_timetable()
+
 def allocate_theory_course(course_code, course_title, section, room_type):
-    # Select two random days from the available days of the week (max two days)
+    # Shuffle and select two random days from the available days of the week
     available_days = days_of_week.copy()
     random.shuffle(available_days)
     
-    # Only select two distinct days for the course
+    # Select only two distinct days for the course section
     selected_days = available_days[:2]
     st.write(f"Selected Days for {course_code} Section {section}: {selected_days}")  # Debugging line
 
-    # Shuffle and assign one slot to each day
+    # Shuffle the available time slots and assign one slot to each day
     available_slots = available_time_slots.copy()
     random.shuffle(available_slots)
     
