@@ -155,7 +155,6 @@ def generate_timetable():
     else:
         st.warning("Failed to generate timetable. Trying a different configuration.")
 def allocate_theory_course(course_code, course_title, section, room_type):
-def allocate_theory_course(course_code, course_title, section, room_type):
     # Select two random days from the available days of the week (max two days)
     available_days = days_of_week.copy()
     random.shuffle(available_days)
@@ -208,6 +207,15 @@ def allocate_theory_course(course_code, course_title, section, room_type):
         else:
             st.warning(f"Failed to assign slot to {course_code} on {day}. No available slots.")
             return False
+
+    # If exactly two slots and two rooms have been successfully assigned to two different days
+    if len(assigned_slots) == 2 and len(assigned_rooms) == 2:
+        st.success(f"Theory course {course_code} successfully scheduled on {selected_days[0]} and {selected_days[1]}.")
+        return True
+    else:
+        st.warning(f"Failed to schedule Theory course {course_code} properly.")
+        return False
+
 
     # If exactly two slots and two rooms have been successfully assigned to two different days
     if len(assigned_slots) == 2 and len(assigned_rooms) == 2:
