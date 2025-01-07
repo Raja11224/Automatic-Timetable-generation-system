@@ -56,37 +56,66 @@ def is_room_available(day, time_slot, room, course_code, section):
                 return False
     return True
 
-# Function to display the timetable section-wise (by section)
-def display_timetable_by_section():
+# Function to display the timetable in the requested format
+def display_timetable_transformed():
     timetable_data = []
-    
-    # Group timetable by section
-    sections = set(course['section'] for course in st.session_state.courses)
-    
-    # Generate timetable for each section
-    for section in sections:
-        section_data = []
+
+    # Loop through each course and its sections
+    for course in st.session_state.courses:
+        course_code = course['course_code']
+        course_title = course['course_title']
+        section = course['section']
+
+        # Create a dictionary for each course with time slots for each day
+        course_row = {
+            'Course Code': course_code,
+            'Course Title': course_title,
+            'Sec.': section,
+            'Mon': '',
+            'Tue': '',
+            'Wed': '',
+            'Thu': '',
+            'Fri': '',
+            'Sat': ''
+        }
+
+        # For each day, check if this course has a time slot
         for day in days_of_week:
-            for course_code, sessions in st.session_state.timetable[day].items():
-                for session in sessions:
-                    if session['section'] == section:
-                        section_data.append({
-                            'Course Code': course_code,
-                            'Course Title': next(course['course_title'] for course in st.session_state.courses if course['course_code'] == course_code),
-                            'Section': session['section'],
-                            'Day': day,
-                            'Time': session['time'],
-                            'Room': session['room'],
-                        })
+            for session in st.session_state.timetable[day].get(course_code, []):
+                if session['section'] == section:
+                    course_row[day[:3]] = session['time']  # Store the time for the respective day (abbreviated day names)
+
+        # Add the formatted course row to the timetable data
+        timetable_data.append(course_row)
+
+    # Display the formatted timetable
+    if timetable_data:
+        timetable_df = pd.DataFrame(timetable_data)
+        st.subheader("Transformed Timetable (Section-wise)")
         
-        # Display timetable for each section
-        if section_data:
-            section_df = pd.DataFrame(section_data)
-            section_df = section_df[['Section', 'Day', 'Course Code', 'Course Title', 'Time', 'Room']]
-            st.subheader(f"Timetable for Section {section}")
-            st.dataframe(section_df)
-        else:
-            st.warning(f"No timetable found for Section {section}")
+        # Display the table
+        styled_df = timetable_df.style \
+            .set_table_styles([{
+                'selector': 'thead th', 
+                'props': [('background-color', '#4CAF50'), ('color', 'white'), ('font-weight', 'bold')]
+            }, {
+                'selector': 'tbody tr:nth-child(odd)', 
+                'props': [('background-color', '#f2f2f2')]
+            }, {
+                'selector': 'tbody tr:nth-child(even)', 
+                'props': [('background-color', '#ffffff')]
+            }, {
+                'selector': 'td', 
+                'props': [('padding', '10px'), ('text-align', 'center')]
+            }, {
+                'selector': 'table', 
+                'props': [('border-collapse', 'collapse'), ('width', '100%')]
+            }]) \
+            .hide(axis="index")
+        
+        st.dataframe(styled_df)
+    else:
+        st.warning("No timetable generated yet.")
 
 # Function to generate timetable
 def generate_timetable():
@@ -108,7 +137,7 @@ def generate_timetable():
                 return
 
     st.success("Timetable generated successfully!")
-    display_timetable_by_section()
+    display_timetable_transformed()
 
 # Function to allocate course (Theory or Lab) to a time slot and room
 def allocate_course(course_code, course_title, section, room_type):
