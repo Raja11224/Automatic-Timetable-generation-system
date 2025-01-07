@@ -49,6 +49,37 @@ def add_course(course_code, course_title, section, room_type, slot_preference):
         'room_type': room_type,
         'slot_preference': slot_preference
     })
+# Function to get available room of a specific type
+def get_available_room(room_type):
+    """
+    Fetch a random available room of a specific type (Theory or Lab).
+    """
+    available_rooms = [room["name"] for room in st.session_state.rooms if room["type"] == room_type]
+    
+    if available_rooms:
+        selected_room = random.choice(available_rooms)
+        st.info(f"Room {selected_room} selected for {room_type} course.")
+        return selected_room
+    else:
+        st.warning(f"No available rooms for {room_type} type.")
+        return None
+
+# Function to check if a room is available
+def is_room_available(day, time_slot, room, course_code, section):
+    """
+    Check if a room is available for a specific course section at a given time.
+    """
+    # Check if there's a conflict for the same course section
+    for other_course_code in st.session_state.timetable[day]:
+        for session in st.session_state.timetable[day].get(other_course_code, []):
+            # Avoid conflicts for the same course section
+            if other_course_code == course_code and session['section'] != section:
+                if session['room'] == room and session['time'] == time_slot:
+                    return False  # Room is already occupied at the time
+            # Ensure no conflict with Lab and Theory courses for the same time
+            if session['room'] == room and session['time'] == time_slot:
+                return False  # Room is already occupied at the time
+    return True  # Room is available
 
 # Function to display the timetable in a readable weekly format
 def display_timetable():
