@@ -167,7 +167,7 @@ def generate_timetable():
                 return
 
     st.success("Timetable generated successfully!")
-    display_timetable()
+    
 
 
 
