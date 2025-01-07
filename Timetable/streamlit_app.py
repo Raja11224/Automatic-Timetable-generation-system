@@ -1,4 +1,7 @@
-
+import streamlit as st
+import random
+import pandas as pd
+from collections import defaultdict
 
 # Initialize session state
 if 'courses' not in st.session_state:
