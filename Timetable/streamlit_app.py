@@ -44,9 +44,15 @@ def get_timetable():
             day_schedule = []
             for session in st.session_state.timetable[day].get(course['course_code'], []):
                 day_schedule.append(f"{session['time']} (Room: {session['room']})")
+            
+            # If no sessions found for the day, mark as "Not scheduled"
             course_times[day] = ", ".join(day_schedule) if day_schedule else "Not scheduled"
         
         timetable_data.append(course_times)
+    
+    # Log timetable data for debugging
+    st.write("Generated Timetable Data: ", timetable_data)  # Add this for debugging
+
     return timetable_data
 
 # Function to add a course
@@ -196,16 +202,17 @@ with col1:
         generate_timetable()
         timetable_data = get_timetable()
         
-        # Check the data structure of timetable_data
-        st.write("Timetable Data: ", timetable_data)  # Debugging line
-        
+        # Debugging line to check the timetable data
+        st.write("Timetable Data: ", timetable_data)
+
         if timetable_data:
             # Transpose the data so days are columns
             timetable_df = pd.DataFrame(timetable_data)
-            timetable_df = timetable_df.set_index('Course Code').transpose()  # Set course code as index and transpose
             
-            # Check the shape of the transposed dataframe
-            st.write("Timetable DataFrame after Transpose: ", timetable_df.shape)
+            # Log the shape of the DataFrame
+            st.write("Timetable DataFrame shape: ", timetable_df.shape)
+
+            timetable_df = timetable_df.set_index('Course Code').transpose()  # Set course code as index and transpose
             
             # Ensure columns match days_of_week length
             if timetable_df.shape[1] == len(days_of_week):
@@ -227,7 +234,6 @@ with col2:
         if timetable_data:
             # Transpose the data
             timetable_df = pd.DataFrame(timetable_data)
-            timetable_df = timetable_df.set_index('Course Code').transpose()
             
             # Ensure columns match days_of_week length
             if timetable_df.shape[1] == len(days_of_week):
