@@ -148,13 +148,7 @@ def schedule_course(course_code, course_title, section, room_type, slot_preferen
         allocate_theory_course(course_code, course_title, section, room_type)
     elif room_type == "Lab" and slot_preference == "3 Hour consecutive block":
         allocate_lab_course(course_code, course_title, section, room_type)
-def display_timetable():
-    """
-    Display the generated timetable.
-    """
-    timetable_data = get_timetable()
-    timetable_df = pd.DataFrame(timetable_data)
-    st.dataframe(timetable_df)
+
 
 
 def generate_timetable():
@@ -174,7 +168,7 @@ def generate_timetable():
 
     st.success("Timetable generated successfully!")
 
-    display_timetable()
+
   
 
 def allocate_theory_course(course_code, course_title, section, room_type):
