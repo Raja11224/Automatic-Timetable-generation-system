@@ -23,15 +23,6 @@ if 'rooms' not in st.session_state:
 days_of_week = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
 available_time_slots = ["8:00 - 9:30", "9:30 - 11:00", "11:00 - 12:30", "12:30 - 2:00", "2:00 - 3:30", "3:30 - 5:00", "5:00 - 6:30"]
 
-# Function to check if a room is available at a specific time slot
-def is_room_available(day, slot, room, course_code, section):
-    # Check if the room is already booked at the given time slot and day
-    for scheduled_course in st.session_state.timetable[day].get(course_code, []):
-        if scheduled_course['time'] == slot and scheduled_course['room'] == room:
-            # Room is already booked for this course at this time slot
-            return False
-    return True
-
 # Function to get timetable
 def get_timetable():
     timetable_data = []
@@ -44,15 +35,9 @@ def get_timetable():
             day_schedule = []
             for session in st.session_state.timetable[day].get(course['course_code'], []):
                 day_schedule.append(f"{session['time']} (Room: {session['room']})")
-            
-            # If no sessions found for the day, mark as "Not scheduled"
             course_times[day] = ", ".join(day_schedule) if day_schedule else "Not scheduled"
         
         timetable_data.append(course_times)
-    
-    # Log timetable data for debugging
-    st.write("Generated Timetable Data: ", timetable_data)  # Add this for debugging
-
     return timetable_data
 
 # Function to add a course
@@ -75,6 +60,24 @@ def get_available_room(room_type):
     else:
         st.warning(f"No available rooms for {room_type} type.")
         return None
+
+
+def is_room_available(day, time_slot, room, course_code, section):
+    """
+    Check if a room is available for a specific course section at a given time.
+    """
+    # Check if there's a conflict for the same course section
+    for other_course_code in st.session_state.timetable[day]:
+        for session in st.session_state.timetable[day].get(other_course_code, []):
+            # Avoid conflicts for the same course section
+            if other_course_code == course_code and session['section'] != section:
+                if session['room'] == room and session['time'] == time_slot:
+                    return False  # Room is already occupied at the time
+            # Ensure no conflict with Lab and Theory courses for the same time
+            if session['room'] == room and session['time'] == time_slot:
+                return False  # Room is already occupied at the time
+    return True  # Room is available
+
 
 # Function to backtrack and allocate rooms and slots with room type and time slot conflict checks
 def backtrack_schedule(courses, idx=0):
@@ -125,21 +128,35 @@ def backtrack_schedule(courses, idx=0):
         
     return False
 
-# Function to generate timetable
+
+# Function to schedule a course (Theory or Lab)
+def schedule_course(course_code, course_title, section, room_type, slot_preference):
+    """
+    Assign time and room to a course section based on the course type.
+    """
+    # Check if the course section has already been scheduled in the timetable
+    if course_code in st.session_state.timetable:
+        for scheduled_course in st.session_state.timetable[course_code]:
+            if scheduled_course['section'] == section:
+                st.warning(f"Course {course_code} ({section}) has already been scheduled.")
+                return  # Skip allocation if already scheduled
+
+    st.info(f"Scheduling Course {course_code} ({section})...")  # Debug log
+
+    # Proceed with scheduling the course section if not already scheduled
+    if room_type == "Theory" and slot_preference == "1.5 Hour blocks":
+        allocate_theory_course(course_code, course_title, section, room_type)
+    elif room_type == "Lab" and slot_preference == "3 Hour consecutive block":
+        allocate_lab_course(course_code, course_title, section, room_type)
+
 def generate_timetable():
     if backtrack_schedule(st.session_state.courses):
         st.success("Timetable generated successfully!")
     else:
         st.warning("Failed to generate timetable. Trying a different configuration.")
 
-# Function to update timetable by adding new courses
-def update_timetable():
-    if backtrack_schedule(st.session_state.courses[len(st.session_state.timetable):]):
-        st.success("Timetable updated successfully!")
-    else:
-        st.warning("Failed to update timetable. Try a different configuration.")
-
 # Streamlit User Interface
+
 st.title("Timetable Generator")
 
 # Section to add a new course
@@ -195,50 +212,14 @@ if st.session_state.rooms:
     rooms_df = pd.DataFrame(st.session_state.rooms)
     st.dataframe(rooms_df)
 
-# Buttons to Generate and Update Timetable
-col1, col2 = st.columns(2)
-with col1:
-    if st.button("Generate Timetable"):
-        generate_timetable()
-        timetable_data = get_timetable()
-        
-        # Debugging line to check the timetable data
-        st.write("Timetable Data: ", timetable_data)
-
-        if timetable_data:
-            # Transpose the data so days are columns
-            timetable_df = pd.DataFrame(timetable_data)
-            
-            # Log the shape of the DataFrame
-            st.write("Timetable DataFrame shape: ", timetable_df.shape)
-
-            timetable_df = timetable_df.set_index('Course Code').transpose()  # Set course code as index and transpose
-            
-            # Ensure columns match days_of_week length
-            if timetable_df.shape[1] == len(days_of_week):
-                timetable_df.columns = days_of_week
-            else:
-                st.warning(f"Mismatch in columns: Expected {len(days_of_week)}, but got {timetable_df.shape[1]}")
-            
-            st.dataframe(timetable_df, width=1200, height=800)  # Increase vertical height
-        
-            st.session_state.generated = True
-            st.session_state.locked = True
-            st.success("Timetable generated and locked!")
-
-with col2:
-    if st.button("Update Timetable"):
-        update_timetable()
-        timetable_data = get_timetable()
-        
-        if timetable_data:
-            # Transpose the data
-            timetable_df = pd.DataFrame(timetable_data)
-            
-            # Ensure columns match days_of_week length
-            if timetable_df.shape[1] == len(days_of_week):
-                timetable_df.columns = days_of_week
-            else:
-                st.warning(f"Mismatch in columns: Expected {len(days_of_week)}, but got {timetable_df.shape[1]}")
-            
-            st.dataframe(timetable_df, width=1200, height=800)  # Increase vertical height
+# Button to Generate Timetable
+if st.button("Generate Timetable"):
+    generate_timetable()
+    
+    timetable_data = get_timetable()
+    timetable_df = pd.DataFrame(timetable_data)
+    st.dataframe(timetable_df)
+    
+    st.session_state.generated = True
+    st.session_state.locked = True
+    st.success("Timetable generated and locked!")
