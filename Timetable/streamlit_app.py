@@ -148,6 +148,7 @@ def schedule_course(course_code, course_title, section, room_type, slot_preferen
         allocate_theory_course(course_code, course_title, section, room_type)
     elif room_type == "Lab" and slot_preference == "3 Hour consecutive block":
         allocate_lab_course(course_code, course_title, section, room_type)
+
 def display_timetable():
     """
     Display the timetable of all courses in a readable format.
@@ -172,8 +173,6 @@ def display_timetable():
         st.warning("No timetable generated yet.")
 
 
-
-
 def generate_timetable():
     """
     Try to generate the timetable by scheduling all the courses.
@@ -191,12 +190,6 @@ def generate_timetable():
 
     st.success("Timetable generated successfully!")
     display_timetable()
-
-    
-
-
-
-  
 
 def allocate_theory_course(course_code, course_title, section, room_type):
     # List of all available time slots
@@ -297,8 +290,6 @@ if st.button("Generate Timetable"):
     timetable_df = pd.DataFrame(timetable_data)
     st.dataframe(timetable_df)
 
-
-    
     st.session_state.generated = True
     st.session_state.locked = True
     st.success("Timetable generated and locked!")
