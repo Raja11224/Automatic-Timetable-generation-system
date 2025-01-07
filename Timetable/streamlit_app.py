@@ -56,8 +56,8 @@ def is_room_available(day, time_slot, room, course_code, section):
                 return False
     return True
 
-# Function to display the timetable section-wise
-def display_timetable_section_wise():
+# Function to display the timetable section-wise (by section)
+def display_timetable_by_section():
     timetable_data = []
     
     # Group timetable by section
@@ -65,12 +65,12 @@ def display_timetable_section_wise():
     
     # Generate timetable for each section
     for section in sections:
-        # Add the data for each section to timetable_data
+        section_data = []
         for day in days_of_week:
             for course_code, sessions in st.session_state.timetable[day].items():
                 for session in sessions:
                     if session['section'] == section:
-                        timetable_data.append({
+                        section_data.append({
                             'Course Code': course_code,
                             'Course Title': next(course['course_title'] for course in st.session_state.courses if course['course_code'] == course_code),
                             'Section': session['section'],
@@ -78,26 +78,15 @@ def display_timetable_section_wise():
                             'Time': session['time'],
                             'Room': session['room'],
                         })
-    
-    # Display the timetable as a dataframe, grouped by section
-    if timetable_data:
-        timetable_df = pd.DataFrame(timetable_data)
-        timetable_df = timetable_df[['Section', 'Day', 'Course Code', 'Course Title', 'Time', 'Room']]
         
-        # Allow user to select a section
-        section_filter = st.selectbox("Select Section", sorted(set(timetable_df['Section'])))
-        
-        # Filter timetable by selected section
-        filtered_df = timetable_df[timetable_df['Section'] == section_filter]
-        
-        # Display filtered timetable
-        if not filtered_df.empty:
-            st.subheader(f"Timetable for Section {section_filter}")
-            st.dataframe(filtered_df)
+        # Display timetable for each section
+        if section_data:
+            section_df = pd.DataFrame(section_data)
+            section_df = section_df[['Section', 'Day', 'Course Code', 'Course Title', 'Time', 'Room']]
+            st.subheader(f"Timetable for Section {section}")
+            st.dataframe(section_df)
         else:
-            st.warning(f"No timetable found for Section {section_filter}")
-    else:
-        st.warning("No timetable generated yet.")
+            st.warning(f"No timetable found for Section {section}")
 
 # Function to generate timetable
 def generate_timetable():
@@ -119,7 +108,7 @@ def generate_timetable():
                 return
 
     st.success("Timetable generated successfully!")
-    display_timetable_section_wise()
+    display_timetable_by_section()
 
 # Function to allocate course (Theory or Lab) to a time slot and room
 def allocate_course(course_code, course_title, section, room_type):
