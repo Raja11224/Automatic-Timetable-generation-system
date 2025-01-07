@@ -7,12 +7,6 @@ from collections import defaultdict
 if 'courses' not in st.session_state:
     st.session_state.courses = []
 
-if 'generated' not in st.session_state:
-    st.session_state.generated = False
-
-if 'locked' not in st.session_state:
-    st.session_state.locked = False
-
 if 'timetable' not in st.session_state:
     st.session_state.timetable = defaultdict(lambda: defaultdict(list))
 
