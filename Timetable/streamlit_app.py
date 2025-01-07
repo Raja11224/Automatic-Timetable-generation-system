@@ -225,8 +225,11 @@ with col1:
     if st.button("Generate Timetable"):
         generate_timetable()
         timetable_data = get_timetable()
+        
+        # Format the timetable to fit the screen better
         timetable_df = pd.DataFrame(timetable_data)
-        st.dataframe(timetable_df)
+        st.dataframe(timetable_df, width=1200, height=600)  # Increased size
+        
         st.session_state.generated = True
         st.session_state.locked = True
         st.success("Timetable generated and locked!")
@@ -235,7 +238,10 @@ with col2:
     if st.button("Update Timetable"):
         update_timetable()
         timetable_data = get_timetable()
+        
+        # Format the timetable to fit the screen better
         timetable_df = pd.DataFrame(timetable_data)
-        st.dataframe(timetable_df)
+        st.dataframe(timetable_df, width=1200, height=600)  # Increased size
+        
         st.session_state.locked = True
         st.success("Timetable updated successfully!")
