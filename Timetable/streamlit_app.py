@@ -165,6 +165,14 @@ def generate_timetable():
                 return
 
     st.success("Timetable generated successfully!")
+    def display_timetable():
+    """
+    Display the generated timetable.
+    """
+    timetable_data = get_timetable()
+    timetable_df = pd.DataFrame(timetable_data)
+    st.dataframe(timetable_df)
+
     display_timetable()
   
 
@@ -287,13 +295,7 @@ if st.button("Generate Timetable"):
     timetable_data = get_timetable()
     timetable_df = pd.DataFrame(timetable_data)
     st.dataframe(timetable_df)
-def display_timetable():
-    """
-    Display the generated timetable.
-    """
-    timetable_data = get_timetable()
-    timetable_df = pd.DataFrame(timetable_data)
-    st.dataframe(timetable_df)
+
 
     
     st.session_state.generated = True
