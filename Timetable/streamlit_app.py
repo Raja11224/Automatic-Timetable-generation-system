@@ -158,31 +158,45 @@ def allocate_theory_course(course_code, course_title, section, room_type):
     available_days = days_of_week.copy()
     random.shuffle(available_days)
     
-    # Try to assign two different days for 1.5-hour blocks
-    selected_days = available_days[:2]  # Pick two distinct days
+    # Pick only the first two distinct days
+    selected_days = available_days[:2]  # Only two days for the theory course
 
     available_slots = available_time_slots.copy()
     random.shuffle(available_slots)
 
-    # Attempt to assign a time slot to each selected day
+    # Try to assign exactly one slot per day
     assigned_slots = []  # Will hold the time slots assigned to the two days
+    assigned_rooms = []  # Will hold the rooms assigned for the course
+
     for day in selected_days:
         for slot in available_slots:
-            # Check if slot is available on the day for this course type
-            if is_room_available(day, slot, room, course_code, section):
-                assigned_slots.append(slot)
+            # Get the available room for the selected day and slot
+            available_rooms = [room["name"] for room in st.session_state.rooms if room["type"] == room_type]
+            random.shuffle(available_rooms)
+
+            room = None
+            for available_room in available_rooms:
+                if is_room_available(day, slot, available_room, course_code, section):
+                    room = available_room
+                    break  # Room found, exit loop
+
+            if room:
+                # Assign this slot and room to the course on this day
                 st.session_state.timetable[day][course_code].append({
                     'time': slot,
                     'room': room,
                     'section': section
                 })
-                break  # We need only one slot per day
-    
-    if len(assigned_slots) == 2:  # Ensure both slots are assigned to different days
-        st.success(f"Theory course {course_code} successfully scheduled!")
+                assigned_slots.append(slot)
+                assigned_rooms.append(room)
+                break  # Only assign one slot per day
+
+    # If we assigned exactly 2 slots to 2 distinct days, return success
+    if len(assigned_slots) == 2 and len(assigned_rooms) == 2:
+        st.success(f"Theory course {course_code} successfully scheduled on {selected_days[0]} and {selected_days[1]}!")
         return True
     else:
-        st.warning(f"Failed to schedule Theory course {course_code}.")
+        st.warning(f"Failed to schedule Theory course {course_code} properly.")
         return False
 
 
