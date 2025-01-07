@@ -66,6 +66,7 @@ def is_room_available(day, time_slot, room, course_code, section):
     """
     Check if a room is available for a specific course section at a given time.
     """
+    # Check if there's a conflict for the same course section
     for other_course_code in st.session_state.timetable[day]:
         for session in st.session_state.timetable[day].get(other_course_code, []):
             # Avoid conflicts for the same course section
@@ -78,7 +79,7 @@ def is_room_available(day, time_slot, room, course_code, section):
     return True  # Room is available
 
 
-# Function to backtrack and allocate rooms and slots
+# Function to backtrack and allocate rooms and slots with room type and time slot conflict checks
 def backtrack_schedule(courses, idx=0):
     if idx == len(courses):  # All courses have been scheduled
         return True
@@ -86,37 +87,44 @@ def backtrack_schedule(courses, idx=0):
     course = courses[idx]
     room_type = course['room_type']
     section = course['section']
-    room = get_available_room(room_type)  # Get an available room for this course
+    
+    # Get available rooms that match the course's room type (Theory or Lab)
+    available_rooms = [room["name"] for room in st.session_state.rooms if room["type"] == room_type]
+    
+    if not available_rooms:
+        return False  # No available rooms for this course type
+    
+    random.shuffle(available_rooms)
+    room = available_rooms[0]  # Take the first available room (or try others if needed)
 
-    if room:
-        # Try assigning time slots for this course
-        available_days = days_of_week.copy()
-        random.shuffle(available_days)
+    # Try assigning time slots for this course
+    available_days = days_of_week.copy()
+    random.shuffle(available_days)
 
-        for day in available_days:
-            available_slots = available_time_slots.copy()
-            random.shuffle(available_slots)
+    for day in available_days:
+        available_slots = available_time_slots.copy()
+        random.shuffle(available_slots)
 
-            for slot in available_slots:
-                # Check if the room is available
-                if is_room_available(day, slot, room, course['course_code'], section):
-                    # Assign this slot
-                    st.session_state.timetable[day][course['course_code']].append({
-                        'time': slot,
-                        'room': room,
-                        'section': section
-                    })
+        for slot in available_slots:
+            # Check if the room and time slot are available
+            if is_room_available(day, slot, room, course['course_code'], section):
+                # Assign this slot and room to the course
+                st.session_state.timetable[day][course['course_code']].append({
+                    'time': slot,
+                    'room': room,
+                    'section': section
+                })
 
-                    # Move to the next course
-                    if backtrack_schedule(courses, idx + 1):
-                        return True
+                # Move to the next course
+                if backtrack_schedule(courses, idx + 1):
+                    return True
 
-                    # If not successful, undo the assignment and try next
-                    st.session_state.timetable[day][course['course_code']].remove({
-                        'time': slot,
-                        'room': room,
-                        'section': section
-                    })
+                # If not successful, undo the assignment and try next
+                st.session_state.timetable[day][course['course_code']].remove({
+                    'time': slot,
+                    'room': room,
+                    'section': section
+                })
         
     return False
 
