@@ -155,45 +155,52 @@ def generate_timetable():
     else:
         st.warning("Failed to generate timetable. Trying a different configuration.")
 def allocate_theory_course(course_code, course_title, section, room_type):
+    # Select two random days from the available days of the week
     available_days = days_of_week.copy()
     random.shuffle(available_days)
     
-    # Pick only the first two distinct days
-    selected_days = available_days[:2]  # Only two days for the theory course
-
+    # Only select two days
+    selected_days = available_days[:2]  # Two distinct days
+    
+    # Pick a random slot for each selected day
     available_slots = available_time_slots.copy()
     random.shuffle(available_slots)
 
-    # Try to assign exactly one slot per day
     assigned_slots = []  # Will hold the time slots assigned to the two days
     assigned_rooms = []  # Will hold the rooms assigned for the course
-
+    
+    # For each selected day, assign one slot
     for day in selected_days:
-        for slot in available_slots:
-            # Get the available room for the selected day and slot
-            available_rooms = [room["name"] for room in st.session_state.rooms if room["type"] == room_type]
-            random.shuffle(available_rooms)
+        # Pick one slot from the available shuffled slots list
+        slot = available_slots.pop()  # Pop one slot randomly
 
-            room = None
-            for available_room in available_rooms:
-                if is_room_available(day, slot, available_room, course_code, section):
-                    room = available_room
-                    break  # Room found, exit loop
+        # Get the available rooms for the Theory course
+        available_rooms_list = [room["name"] for room in st.session_state.rooms if room["type"] == room_type]
+        random.shuffle(available_rooms_list)
 
-            if room:
-                # Assign this slot and room to the course on this day
-                st.session_state.timetable[day][course_code].append({
-                    'time': slot,
-                    'room': room,
-                    'section': section
-                })
-                assigned_slots.append(slot)
-                assigned_rooms.append(room)
-                break  # Only assign one slot per day (ensures no multiple slots on same day)
+        room = None
+        # Loop through available rooms to find a free room
+        for available_room in available_rooms_list:
+            if is_room_available(day, slot, available_room, course_code, section):
+                room = available_room
+                break  # Room found, break out of the loop
 
-    # If we assigned exactly 1 slot to each of the 2 distinct days, return success
+        if room:
+            # Assign the room and slot to the course on this day
+            st.session_state.timetable[day][course_code].append({
+                'time': slot,
+                'room': room,
+                'section': section
+            })
+            assigned_slots.append(slot)
+            assigned_rooms.append(room)
+        else:
+            st.warning(f"No available room for {course_code} on {day} at {slot}.")
+            return False  # If no room is available, fail the allocation
+
+    # If we successfully assigned exactly one slot and room on each of the two days
     if len(assigned_slots) == 2 and len(assigned_rooms) == 2:
-        st.success(f"Theory course {course_code} successfully scheduled on {selected_days[0]} and {selected_days[1]}!")
+        st.success(f"Theory course {course_code} successfully scheduled on {selected_days[0]} and {selected_days[1]}.")
         return True
     else:
         st.warning(f"Failed to schedule Theory course {course_code} properly.")
