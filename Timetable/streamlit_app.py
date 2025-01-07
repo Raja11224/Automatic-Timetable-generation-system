@@ -241,7 +241,7 @@ with col2:
         
         # Format the timetable to fit the screen better
         timetable_df = pd.DataFrame(timetable_data)
-        st.dataframe(timetable_df, width=1500, height=600)  # Increased size
+        st.dataframe(timetable_df, width=2000, height=600)  # Increased size
         
         st.session_state.locked = True
         st.success("Timetable updated successfully!")
