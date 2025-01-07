@@ -106,6 +106,11 @@ def allocate_course(course_code, course_title, section, room_type):
     """
     Allocate a course (Theory or Lab) to a time slot and room.
     """
+    if room_type == "Lab":
+        # Lab courses are scheduled once a week with two consecutive slots
+        return allocate_lab_course(course_code, course_title, section)
+    
+    # For theory courses, select random days and slots
     available_time_slots = ["8:00 - 9:30", "9:30 - 11:00", "11:00 - 12:30", "12:30 - 2:00", "2:00 - 3:30", "3:30 - 5:00", "5:00 - 6:30"]
     days = random.sample(days_of_week, 2)  # Pick 2 random days for the course
     selected_slots = random.sample(available_time_slots, 2)  # Pick 2 random slots from available slots
@@ -149,6 +154,32 @@ def allocate_course(course_code, course_title, section, room_type):
 
     st.success(f"Course {course_code} successfully scheduled on {', '.join([f'{day} at {slot}' for day, slot, room in assigned_days])}.")
     return True
+
+def allocate_lab_course(course_code, course_title, section):
+    """
+    Allocate a lab course to two consecutive time slots on the same day.
+    """
+    available_time_slots = ["8:00 - 9:30", "9:30 - 11:00", "11:00 - 12:30", "12:30 - 2:00", "2:00 - 3:30", "3:30 - 5:00", "5:00 - 6:30"]
+    selected_day = random.choice(days_of_week)  # Pick a random day for the lab
+    # Select two consecutive time slots for the lab
+    for i, time_slot in enumerate(available_time_slots[:-1]):
+        # Check if both slots are available
+        next_slot = available_time_slots[i + 1]
+        room = get_available_room("Lab")  # Lab rooms only
+        
+        # Ensure both slots are available and assigned to the same room
+        if is_room_available(selected_day, time_slot, room, course_code, section) and is_room_available(selected_day, next_slot, room, course_code, section):
+            # Schedule both slots for the lab
+            st.session_state.timetable[selected_day][course_code].append({
+                'time': f"{time_slot} and {next_slot}",
+                'room': room,
+                'section': section
+            })
+            st.info(f"Lab {course_code} Section {section} scheduled on {selected_day} at {time_slot} and {next_slot} in {room}.")
+            return True
+    
+    st.warning(f"Could not find consecutive time slots for lab {course_code} Section {section} on {selected_day}.")
+    return False
 
 # Streamlit User Interface
 st.title("Timetable Generator")
