@@ -16,6 +16,9 @@ if 'timetable' not in st.session_state:
 if 'timetable_generated' not in st.session_state:
     st.session_state.timetable_generated = False
 
+if 'added_courses' not in st.session_state:
+    st.session_state.added_courses = set()  # Track courses already scheduled
+
 # Sample days of the week and time slots
 days_of_week = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 available_time_slots = ["8:00 - 9:30", "9:30 - 11:00", "11:00 - 12:30", "12:30 - 2:00", "2:00 - 3:30", "3:30 - 5:00", "5:00 - 6:30"]
@@ -90,14 +93,23 @@ def generate_timetable():
     """
     Try to generate the timetable by scheduling all the courses.
     """
-    # Generate timetable for newly added courses and append them to the existing timetable
     for course in st.session_state.courses:
+        course_code = course['course_code']
+        
+        # Skip already scheduled courses
+        if course_code in st.session_state.added_courses:
+            continue
+        
+        # Generate timetable for newly added courses and append them to the existing timetable
         room_type = course['room_type']
         section = course['section']
-        course_code = course['course_code']
         course_title = course['course_title']
         
-        if room_type == "Theory" or room_type == "Lab":  # This includes both PF and DLD courses
+        if room_type == "Lab":
+            if not allocate_lab_course(course_code, course_title, section):
+                st.warning(f"Scheduling failed for {course_code} Section {section}.")
+                return
+        else:
             if not allocate_course(course_code, course_title, section, room_type):
                 st.warning(f"Scheduling failed for {course_code} Section {section}.")
                 return
@@ -157,6 +169,7 @@ def allocate_course(course_code, course_title, section, room_type):
                 return False
 
     st.success(f"Course {course_code} successfully scheduled on {', '.join([f'{day} at {slot}' for day, slot, room in assigned_days])}.")
+    st.session_state.added_courses.add(course_code)  # Mark this course as added
     return True
 
 def allocate_lab_course(course_code, course_title, section):
