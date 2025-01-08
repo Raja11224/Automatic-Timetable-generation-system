@@ -3,19 +3,19 @@ import random
 import pandas as pd
 from collections import defaultdict
 
-# Initialize session state
+# Initialize session state if not already initialized
 if 'courses' not in st.session_state:
     st.session_state.courses = []
-
-if 'timetable' not in st.session_state:
-    st.session_state.timetable = defaultdict(lambda: defaultdict(list))
 
 if 'rooms' not in st.session_state:
     st.session_state.rooms = []
 
-# New session state to track if timetable has been generated
+if 'timetable' not in st.session_state:
+    st.session_state.timetable = defaultdict(lambda: defaultdict(list))
+
 if 'timetable_generated' not in st.session_state:
     st.session_state.timetable_generated = False
+
 
 # Sample days of the week and time slots
 days_of_week = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
@@ -257,9 +257,9 @@ if st.session_state.rooms:
 
 # Button to Update Timetable
 if st.session_state.courses:
-    if st.button("Update Timetable") and not st.session_state.timetable_generated:
-        generate_timetable()
-    
-    # Lock the "Generate Timetable" button after it's generated
     if st.session_state.timetable_generated:
         st.button("Generate Timetable", disabled=True)
+    else:
+        if st.button("Update Timetable"):
+            generate_timetable()
+
