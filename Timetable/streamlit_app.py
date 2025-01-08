@@ -196,7 +196,7 @@ def allocate_lab_course(course_code, course_title, section):
 
 
 # Streamlit User Interface
-st.title("UMT Timetable Generato")
+st.title("UMT Timetable Generator")
 
 # Section to add a new course
 st.header("Add a New Course")
