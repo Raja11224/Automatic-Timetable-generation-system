@@ -16,7 +16,6 @@ if 'timetable' not in st.session_state:
 if 'timetable_generated' not in st.session_state:
     st.session_state.timetable_generated = False
 
-
 # Sample days of the week and time slots
 days_of_week = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 available_time_slots = ["8:00 - 9:30", "9:30 - 11:00", "11:00 - 12:30", "12:30 - 2:00", "2:00 - 3:30", "3:30 - 5:00", "5:00 - 6:30"]
@@ -259,7 +258,7 @@ if st.session_state.rooms:
 if st.session_state.courses:
     if st.session_state.timetable_generated:
         st.button("Generate Timetable", disabled=True)
-    else:
         if st.button("Update Timetable"):
             generate_timetable()
-
+    else:
+        st.button("Generate Timetable")
