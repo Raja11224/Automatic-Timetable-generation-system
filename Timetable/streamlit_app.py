@@ -183,6 +183,16 @@ def allocate_lab_course(course_code, course_title, section):
         if is_room_available(selected_day, time_slot, room, course_code, section) and \
            is_room_available(selected_day, next_slot, room, course_code, section):
             
+            # Check if both slots are unoccupied by other lab courses or conflicting courses
+            # Make sure no other course is assigned at the same time in the same room
+            for day, sessions in st.session_state.timetable.items():
+                for course_key, course_sessions in sessions.items():
+                    if course_key != course_code:  # Skip the current course
+                        for session in course_sessions:
+                            if session['time'] == time_slot or session['time'] == next_slot:
+                                st.warning(f"Conflict: {course_key} is already scheduled in the same room during {time_slot} or {next_slot}. Retrying assignment.")
+                                return False  # If there’s a conflict, stop and return false
+
             # Assign the lab course to the selected day and both consecutive slots
             st.session_state.timetable[selected_day][course_code].append({
                 'time': f"{time_slot} and {next_slot}",
@@ -196,6 +206,7 @@ def allocate_lab_course(course_code, course_title, section):
     # If no consecutive time slots are available, show a warning
     st.warning(f"Could not find consecutive time slots for Lab {course_code} Section {section} on {selected_day}.")
     return False
+
 
 
 # Streamlit User Interface
