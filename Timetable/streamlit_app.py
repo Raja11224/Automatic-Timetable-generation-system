@@ -89,33 +89,22 @@ def display_timetable():
 def generate_timetable():
     """
     Try to generate the timetable by scheduling all the courses.
-    This ensures that previously scheduled courses remain unchanged.
     """
     # Generate timetable for newly added courses and append them to the existing timetable
     for course in st.session_state.courses:
-        # Check if the course is already scheduled
-        is_course_scheduled = False
-        for day in days_of_week:
-            if course['course_code'] in st.session_state.timetable[day]:
-                is_course_scheduled = True
-                break
+        room_type = course['room_type']
+        section = course['section']
+        course_code = course['course_code']
+        course_title = course['course_title']
         
-        # If the course is not already scheduled, attempt to allocate it
-        if not is_course_scheduled:
-            room_type = course['room_type']
-            section = course['section']
-            course_code = course['course_code']
-            course_title = course['course_title']
-            
-            if room_type == "Theory" or room_type == "Lab":  # This includes both PF and DLD courses
-                if not allocate_course(course_code, course_title, section, room_type):
-                    st.warning(f"Scheduling failed for {course_code} Section {section}.")
-                    return
+        if room_type == "Theory" or room_type == "Lab":  # This includes both PF and DLD courses
+            if not allocate_course(course_code, course_title, section, room_type):
+                st.warning(f"Scheduling failed for {course_code} Section {section}.")
+                return
 
     st.session_state.timetable_generated = True  # Mark timetable as generated
-    st.success("Timetable updated successfully!")
+    st.success("Timetable generated successfully!")
     display_timetable()
-
 
 def allocate_course(course_code, course_title, section, room_type):
     """
