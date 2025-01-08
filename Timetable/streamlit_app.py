@@ -13,6 +13,10 @@ if 'timetable' not in st.session_state:
 if 'rooms' not in st.session_state:
     st.session_state.rooms = []
 
+# New session state to track if timetable has been generated
+if 'timetable_generated' not in st.session_state:
+    st.session_state.timetable_generated = False
+
 # Sample days of the week and time slots
 days_of_week = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 available_time_slots = ["8:00 - 9:30", "9:30 - 11:00", "11:00 - 12:30", "12:30 - 2:00", "2:00 - 3:30", "3:30 - 5:00", "5:00 - 6:30"]
@@ -99,6 +103,7 @@ def generate_timetable():
                 st.warning(f"Scheduling failed for {course_code} Section {section}.")
                 return
 
+    st.session_state.timetable_generated = True  # Mark timetable as generated
     st.success("Timetable updated successfully!")
     display_timetable()
 
@@ -194,7 +199,6 @@ def allocate_lab_course(course_code, course_title, section):
     return False
 
 
-
 # Streamlit User Interface
 st.title("UMT Timetable Generator")
 
@@ -253,5 +257,9 @@ if st.session_state.rooms:
 
 # Button to Update Timetable
 if st.session_state.courses:
-    if st.button("Update Timetable"):
+    if st.button("Update Timetable") and not st.session_state.timetable_generated:
         generate_timetable()
+    
+    # Lock the "Generate Timetable" button after it's generated
+    if st.session_state.timetable_generated:
+        st.button("Generate Timetable", disabled=True)
