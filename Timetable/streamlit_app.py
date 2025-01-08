@@ -254,10 +254,14 @@ if st.session_state.rooms:
     rooms_df = pd.DataFrame(st.session_state.rooms)
     st.dataframe(rooms_df)
 
-# Button to Update Timetable
+# Buttons for Timetable Generation and Update
 if st.session_state.courses:
     if not st.session_state.timetable_generated:
         if st.button("Generate Timetable"):
             generate_timetable()
     else:
-        st.button("Generate Timetable", disabled=True) # Disable after timetable generation
+        # Show update button once the timetable is generated
+        if st.button("Update Timetable"):
+            generate_timetable()  # Will only add new courses, not change existing timetable
+        else:
+            st.button("Generate Timetable", disabled=True)  # Disable after timetable generation
