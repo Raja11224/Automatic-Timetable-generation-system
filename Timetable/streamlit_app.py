@@ -103,7 +103,7 @@ def generate_timetable():
                 return
 
     st.session_state.timetable_generated = True  # Mark timetable as generated
-    st.success("Timetable updated successfully!")
+    st.success("Timetable generated successfully!")
     display_timetable()
 
 def allocate_course(course_code, course_title, section, room_type):
@@ -256,9 +256,8 @@ if st.session_state.rooms:
 
 # Button to Update Timetable
 if st.session_state.courses:
-    if st.session_state.timetable_generated:
-        st.button("Generate Timetable", disabled=True)
-        if st.button("Update Timetable"):
+    if not st.session_state.timetable_generated:
+        if st.button("Generate Timetable"):
             generate_timetable()
     else:
-        st.button("Generate Timetable")
+        st.button("Generate Timetable", disabled=True) # Disable after timetable generation
