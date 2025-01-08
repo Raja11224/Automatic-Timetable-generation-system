@@ -120,7 +120,7 @@ def generate_timetable():
 
 def allocate_course(course_code, course_title, section, room_type):
     """
-    Allocate a course (Theory or Lab) to a time slot and room.
+    Allocate a course (Theory) to a time slot and room.
     """
     if room_type == "Lab":
         # Lab courses are scheduled once a week with two consecutive slots
