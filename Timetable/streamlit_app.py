@@ -115,24 +115,28 @@ def allocate_course(course_code, course_title, section, room_type):
     """
     Allocate a course (Theory or Lab) to a time slot and room.
     """
-    available_time_slots = ["8:00 - 9:30", "9:30 - 11:00", "11:00 - 12:30", "12:30 - 2:00", "2:00 - 3:30", "3:30 - 5:00", "5:00 - 6:30"]
+    available_time_slots = [
+        "8:00 - 9:30", "9:30 - 11:00", "11:00 - 12:30", 
+        "12:30 - 2:00", "2:00 - 3:30", "3:30 - 5:00", "5:00 - 6:30"
+    ]
     
     if len(st.session_state.rooms) == 1:  # If there's only one room, use it for all courses
         room = get_available_room(room_type)  # This will always pick the only available room
         if room:
-            # Allocate this room to all available time slots without conflict
+            # Allocate this room to each course but only once per time slot
             for time_slot in available_time_slots:
-                # Check if the room is available for the time slot (since we're using one room, no conflicts)
-                st.session_state.timetable[random.choice(days_of_week)][course_code].append({
-                    'time': time_slot,
-                    'room': room,
-                    'section': section
-                })
-                st.info(f"Assigned {course_code} Section {section} to {time_slot} in {room}.")
+                # Check if the course is already assigned to a slot (if not already assigned)
+                if course_code not in [session['course_code'] for session in st.session_state.timetable.values()]:
+                    st.session_state.timetable[random.choice(days_of_week)][course_code].append({
+                        'time': time_slot,
+                        'room': room,
+                        'section': section
+                    })
+                    st.info(f"Assigned {course_code} Section {section} to {time_slot} in {room}.")
         else:
             st.warning(f"Could not assign {course_code} Section {section} to any time slots.")
         return True
-
+    
     # For theory courses (same as before if multiple rooms are available)
     days = random.sample(days_of_week, 2)  # Pick 2 random days for the course
     selected_slots = random.sample(available_time_slots, 2)  # Pick 2 random slots from available slots
