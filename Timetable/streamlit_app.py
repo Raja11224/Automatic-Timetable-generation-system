@@ -155,7 +155,7 @@ def allocate_course(course_code, course_title, section, room_type):
             st.warning(f"Could not assign {course_code} Section {section} to {day} at {selected_slot}. Retrying assignment.")
             # Try a different room or time slot
             retry_success = False
-            for attempt in range(10):  # Try 3 times for conflict resolution
+            for attempt in range(3):  # Try 3 times for conflict resolution
                 retry_room = get_available_room(room_type)
                 if is_room_available(day, selected_slot, retry_room, course_code, section):
                     st.info(f"Retrying: Assigned {course_code} Section {section} to {day} at {selected_slot} in {retry_room}.")
