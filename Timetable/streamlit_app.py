@@ -248,6 +248,19 @@ if st.session_state.courses:
     } for course in st.session_state.courses])
     st.dataframe(courses_df)
 
+# Room Management Section
+st.header("Room Management")
+
+room_name = st.text_input("Room Name")
+room_type = st.selectbox("Room Type", ["Lecture", "Lab", "Seminar"])
+
+if st.button("Add Room"):
+    if room_name and room_type:
+        st.session_state.rooms.append({"name": room_name, "type": room_type})
+        st.success(f"Room '{room_name}' added as {room_type}!")
+    else:
+        st.warning("Please fill in both Room Name and Room Type.")
+
 # Buttons for Timetable Generation and Update
 if st.session_state.courses:
     if not st.session_state.timetable_generated:
