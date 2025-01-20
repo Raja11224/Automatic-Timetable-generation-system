@@ -41,14 +41,16 @@ def read_courses_from_xlsx(uploaded_file):
         if all(col in df.columns for col in required_columns):
             # Add the courses to session state
             for _, row in df.iterrows():
-                add_course(row['Course Code'], row['Course Title'], row['Section'], row['Room Type'], row['Slot Preference'])
+                # Ensure course is not already in the list
+                if not any(course['course_code'] == row['Course Code'] and course['section'] == row['Section'] for course in st.session_state.courses):
+                    add_course(row['Course Code'], row['Course Title'], row['Section'], row['Room Type'], row['Slot Preference'])
             st.success("Courses added successfully from the XLSX file!")
         else:
             st.error(f"The uploaded file is missing one or more of the required columns: {', '.join(required_columns)}")
     except Exception as e:
         st.error(f"Error reading the XLSX file: {str(e)}")
 
-# Function to get available room of a specific type
+# Function to get available room of a specific type (Theory or Lab)
 def get_available_room(room_type):
     available_rooms = [room["name"] for room in st.session_state.rooms if room["type"] == room_type]
     
@@ -201,16 +203,6 @@ def allocate_lab_course(course_code, course_title, section):
         if is_room_available(selected_day, time_slot, room, course_code, section) and \
            is_room_available(selected_day, next_slot, room, course_code, section):
             
-            # Check for conflicts with other courses (both theory and lab courses)
-            for day, sessions in st.session_state.timetable.items():
-                for course_key, course_sessions in sessions.items():
-                    for session in course_sessions:
-                        # Avoid conflict with any other course in the same room and time slot
-                        if session['room'] == room and \
-                           (session['time'] == time_slot or session['time'] == next_slot):
-                            st.warning(f"Conflict: {course_key} is already scheduled in the same room during {time_slot} or {next_slot}. Retrying assignment.")
-                            return False  # If there’s a conflict, stop and return false
-            
             # Assign the lab course to the selected day and both consecutive slots
             st.session_state.timetable[selected_day][course_code].append({
                 'time': f"{time_slot} and {next_slot}",
@@ -252,7 +244,7 @@ if st.session_state.courses:
 st.header("Room Management")
 
 room_name = st.text_input("Room Name")
-room_type = st.selectbox("Room Type", ["Lecture", "Lab", "Seminar"])
+room_type = st.selectbox("Room Type", ["Theory", "Lab"])
 
 if st.button("Add Room"):
     if room_name and room_type:
