@@ -1,7 +1,7 @@
 import streamlit as st
-import random
 import pandas as pd
 from collections import defaultdict
+import random
 
 # Initialize session state if not already initialized
 if 'courses' not in st.session_state:
@@ -228,30 +228,13 @@ def allocate_lab_course(course_code, course_title, section):
 # Streamlit User Interface
 st.title("UMT Timetable Generator")
 
-# Section to add a new course or upload a file
-st.header("Add Courses or Upload an XLSX File")
+# Section to upload the XLSX file with course information
+st.header("Upload an XLSX File with Course Information")
 
-# Upload XLSX file with course information
 uploaded_file = st.file_uploader("Choose an XLSX file", type="xlsx")
 
 if uploaded_file is not None:
     read_courses_from_xlsx(uploaded_file)
-
-with st.form(key='add_course_form'):
-    course_code = st.text_input("Course Code")
-    course_title = st.text_input("Course Title")
-    section = st.text_input("Section")
-    room_type = st.selectbox("Room Type", ["Theory", "Lab"])
-    slot_preference = st.selectbox("Slot Preference", ["1.5 Hour blocks", "3 Hour consecutive block"])
-    
-    add_course_button = st.form_submit_button(label="Add Course")
-    
-    if add_course_button:
-        if course_code and course_title and section:
-            add_course(course_code, course_title, section, room_type, slot_preference)
-            st.success(f"Course {course_code} added successfully!")
-        else:
-            st.error("Please fill in all fields.")
 
 # Display Added Courses
 if st.session_state.courses:
@@ -264,28 +247,6 @@ if st.session_state.courses:
         'Slot Preference': course['slot_preference'],
     } for course in st.session_state.courses])
     st.dataframe(courses_df)
-
-# Room Management Section
-st.header("Room Management")
-
-# Add Room Form
-with st.form(key='add_room_form'):
-    room_name = st.text_input("Room Name")
-    room_type = st.selectbox("Room Type", ["Theory", "Lab"])
-    add_room_button = st.form_submit_button(label="Add Room")
-
-    if add_room_button:
-        if room_name and room_type:
-            st.session_state.rooms.append({"name": room_name, "type": room_type})
-            st.success(f"Room {room_name} added successfully!")
-        else:
-            st.error("Please fill in all fields.")
-
-# Display Rooms
-if st.session_state.rooms:
-    st.subheader("Available Rooms:")
-    rooms_df = pd.DataFrame(st.session_state.rooms)
-    st.dataframe(rooms_df)
 
 # Buttons for Timetable Generation and Update
 if st.session_state.courses:
