@@ -30,6 +30,24 @@ def add_course(course_code, course_title, section, room_type, slot_preference):
         'slot_preference': slot_preference
     })
 
+# Function to read course information from an XLSX file
+def read_courses_from_xlsx(uploaded_file):
+    try:
+        # Read the XLSX file using pandas
+        df = pd.read_excel(uploaded_file)
+        
+        # Check if necessary columns exist
+        required_columns = ['Course Code', 'Course Title', 'Section', 'Room Type', 'Slot Preference']
+        if all(col in df.columns for col in required_columns):
+            # Add the courses to session state
+            for _, row in df.iterrows():
+                add_course(row['Course Code'], row['Course Title'], row['Section'], row['Room Type'], row['Slot Preference'])
+            st.success("Courses added successfully from the XLSX file!")
+        else:
+            st.error(f"The uploaded file is missing one or more of the required columns: {', '.join(required_columns)}")
+    except Exception as e:
+        st.error(f"Error reading the XLSX file: {str(e)}")
+
 # Function to get available room of a specific type
 def get_available_room(room_type):
     available_rooms = [room["name"] for room in st.session_state.rooms if room["type"] == room_type]
@@ -207,14 +225,17 @@ def allocate_lab_course(course_code, course_title, section):
     st.warning(f"Could not find consecutive time slots for Lab {course_code} Section {section} on {selected_day}.")
     return False
 
-
-
-
 # Streamlit User Interface
 st.title("UMT Timetable Generator")
 
-# Section to add a new course
-st.header("Add a New Course")
+# Section to add a new course or upload a file
+st.header("Add Courses or Upload an XLSX File")
+
+# Upload XLSX file with course information
+uploaded_file = st.file_uploader("Choose an XLSX file", type="xlsx")
+
+if uploaded_file is not None:
+    read_courses_from_xlsx(uploaded_file)
 
 with st.form(key='add_course_form'):
     course_code = st.text_input("Course Code")
